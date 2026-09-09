@@ -469,7 +469,7 @@
 
                     <button id="send-invite-btn">
                         <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                        Einladung per Mail senden
+                        Einladung über GMX senden
                     </button>
                 </div>
 
@@ -593,7 +593,7 @@
                 Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Profil
             </button>
         </div>
@@ -611,6 +611,9 @@
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<!-- EmailJS SDK -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
 <!-- Firebase SDKs -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -621,6 +624,9 @@
     import { 
         getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, serverTimestamp, deleteDoc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // EmailJS initialisieren (Trage hier deinen Public Key von EmailJS ein)
+    emailjs.init("CFQLo5C6SDyav2WuP");
 
     const keyPart1 = "AIzaSyCLhOlcwKeqtdNNF_";
     const keyPart2 = "HrFA0xavgOgZjHMPw";
@@ -649,7 +655,6 @@
     let activeChatUnsubscribe = null;
     let invitationsCache = {};
 
-    // Prüfen ob Redirect-Ergebnis vorliegt (für Google Login)
     getRedirectResult(auth).then(async (result) => {
         if (result && result.user) {
             const userDoc = await getDoc(doc(db, "users", result.user.uid));
@@ -667,7 +672,6 @@
         if (authMessage) authMessage.innerText = 'Google-Login Fehler: ' + error.message;
     });
 
-    // Globale Admin-Funktionen
     window.toggleUserTag = async (uid, tagName, add) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const userObj = usersList.find(u => u.id === uid);
@@ -789,7 +793,7 @@
         renderUserChips();
 
         const sendBtn = document.getElementById('send-invite-btn');
-        sendBtn.innerText = "Änderungen speichern & aktualisiert per Mail senden";
+        sendBtn.innerText = "Änderungen speichern & aktualisiert über GMX senden";
         sendBtn.onclick = () => window.updateAndResendInvitation(invId);
 
         document.getElementById('nav-invite-btn').click();
@@ -808,27 +812,27 @@
                 recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
             });
 
-            const mailSubject = "AKTUALISIERT: Einladung zur Hütte Dangstetten";
-            const mailBody = `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n\nViele Grüße\n${currentUserData.name}`;
-
-            window.location.href = `mailto:${selectedEmails.join(',')}` +
-                `?subject=${encodeURIComponent(mailSubject)}` +
-                `&body=${encodeURIComponent(mailBody)}`;
+            // E-Mail via EmailJS versenden
+            await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                to_email: selectedEmails.join(','),
+                subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
+                message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
+                from_name: currentUserData.name
+            });
 
             resetSendButtonToCreate();
-            alert('Einladung erfolgreich aktualisiert und Mail-Client geöffnet!');
+            alert('Einladung erfolgreich aktualisiert und via GMX versendet!');
         } catch (err) {
-            alert('Fehler: ' + err.message);
+            alert('Fehler beim Senden: ' + JSON.stringify(err));
         }
     };
 
     function resetSendButtonToCreate() {
         const sendBtn = document.getElementById('send-invite-btn');
-        sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung per Mail senden`;
+        sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung über GMX senden`;
         sendBtn.onclick = createNewInvitation;
     }
 
-    // UI Navigation
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authTitle = document.getElementById('auth-title');
@@ -1170,16 +1174,23 @@
         const center = map.getCenter();
         const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
 
-        await addDoc(collection(db, "invitations"), {
-            createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
-        });
+        try {
+            await addDoc(collection(db, "invitations"), {
+                createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
+            });
 
-        const mailSubject = "Einladung zur Hütte Dangstetten";
-        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}\n\nViele Grüße\n${currentUserData.name}`;
+            // E-Mail über EmailJS (GMX) absenden
+            await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+                to_email: selectedEmails.join(','),
+                subject: "Einladung zur Hütte Dangstetten",
+                message: `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}`,
+                from_name: currentUserData.name
+            });
 
-        window.location.href = `mailto:${selectedEmails.join(',')}` +
-            `?subject=${encodeURIComponent(mailSubject)}` +
-            `&body=${encodeURIComponent(mailBody)}`;
+            alert('Einladung erfolgreich über GMX versendet!');
+        } catch (err) {
+            alert('Fehler beim Versenden der E-Mail: ' + JSON.stringify(err));
+        }
     }
 
     const sendInviteBtn = document.getElementById('send-invite-btn');
@@ -1230,7 +1241,6 @@
         });
     }
 
-    // CHAT SYSTEM MIT TAG- KANÄLEN & DMs
     function getDMId(email1, email2) { return [email1, email2].sort().join("_"); }
 
     function updateChatRoomsList() {
