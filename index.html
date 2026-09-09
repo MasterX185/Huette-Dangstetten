@@ -11,25 +11,26 @@
 
     <style>
         :root {
-            --whatsapp-teal: #00a884;
-            --whatsapp-dark: #075e54;
-            --whatsapp-bg: #efeae2;
-            --whatsapp-sidebar: #ffffff;
-            --whatsapp-chat-bg: #efeae2;
-            --whatsapp-msg-out: #d9fdd3;
-            --whatsapp-msg-in: #ffffff;
-            --whatsapp-border: #e9edef;
-            --whatsapp-text: #111b21;
-            --whatsapp-text-secondary: #667781;
-            --danger: #ea0038;
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --primary-light: #ccfbf1;
+            --bg-body: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
         body {
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            background-color: var(--whatsapp-bg);
-            color: var(--whatsapp-text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
             margin: 0;
             padding: 0;
             display: flex;
@@ -39,93 +40,114 @@
         }
 
         .container {
-            background: #f0f2f5;
+            background: var(--surface);
             width: 100%;
-            max-width: 1000px;
+            max-width: 1100px;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: var(--shadow);
         }
 
         @media (min-width: 768px) {
             body { padding: 20px; }
             .container {
-                height: 90vh;
-                border-radius: 10px;
+                height: 92vh;
+                border-radius: var(--radius);
                 overflow: hidden;
-                border: 1px solid #d1d7db;
+                border: 1px solid var(--border);
             }
         }
 
         header {
-            background-color: var(--whatsapp-dark);
+            background-color: var(--primary-dark);
             color: white;
-            padding: 12px 20px;
+            padding: 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
         }
 
-        header h1 { margin: 0; font-size: 1.2rem; font-weight: 500; }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.025em; }
+
+        /* ICON STYLING */
+        .icon {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+            display: inline-block;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        .icon-lg { width: 22px; height: 22px; }
+        .icon-sm { width: 14px; height: 14px; }
 
         /* AUTH SECTION */
         #auth-section {
-            background: white;
-            padding: 30px 20px;
+            background: var(--surface);
+            padding: 40px 30px;
             margin: auto;
             width: 100%;
-            max-width: 400px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 420px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
 
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 6px; font-weight: 500; font-size: 0.85em; color: var(--whatsapp-text-secondary); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted); }
         input, select, textarea { 
-            width: 100%; padding: 12px;
-            border: 1px solid #d1d7db; border-radius: 8px; font-family: inherit;
-            font-size: 16px; background: #f0f2f5; outline: none; transition: border 0.2s;
+            width: 100%; padding: 12px 16px;
+            border: 1px solid var(--border); border-radius: 8px; font-family: inherit;
+            font-size: 0.95rem; background: #f8fafc; outline: none; transition: all 0.2s;
+            color: var(--text-main);
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--whatsapp-teal); background: #fff; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px var(--primary-light); }
 
         button { 
-            background-color: var(--whatsapp-teal); color: white; border: none; 
-            padding: 12px 15px; border-radius: 8px; cursor: pointer; 
-            width: 100%; font-weight: 600; transition: background 0.2s;
+            background-color: var(--primary); color: white; border: none; 
+            padding: 12px 20px; border-radius: 8px; cursor: pointer; 
+            width: 100%; font-weight: 600; transition: background 0.2s, transform 0.1s;
             font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;
         }
-        button:hover { background-color: #019574; }
-        .btn-secondary { background-color: #667781; }
-        .btn-secondary:hover { background-color: #55626a; }
-        .btn-google { background-color: #4285F4; margin-top: 10px; }
-        .btn-google:hover { background-color: #357ae8; }
-        .btn-link { background: none; color: var(--whatsapp-dark); border: none; text-decoration: underline; width: auto; cursor: pointer; padding: 0; font-size: 0.9em; display: inline; }
-        .logout-btn { background-color: #eb4034; margin-top: 15px; }
-        .delete-btn { background-color: var(--danger); }
-        .small-btn { width: auto; padding: 6px 12px; font-size: 0.8em; margin: 2px; }
+        button:hover { background-color: var(--primary-dark); }
+        button:active { transform: scale(0.98); }
+        
+        .btn-secondary { background-color: #475569; }
+        .btn-secondary:hover { background-color: #334155; }
+        .btn-google { background-color: #ffffff; color: #1e293b; border: 1px solid var(--border); margin-top: 12px; }
+        .btn-google:hover { background-color: #f1f5f9; }
+        .btn-link { background: none; color: var(--primary); border: none; text-decoration: underline; width: auto; cursor: pointer; padding: 0; font-size: 0.9rem; display: inline; }
+        .logout-btn { background-color: var(--danger); margin-top: 24px; }
+        .delete-btn { background-color: var(--danger); padding: 8px 12px; font-size: 0.8rem; }
+        .small-btn { width: auto; padding: 8px 14px; font-size: 0.85rem; }
 
         .hidden { display: none !important; }
-        .message { color: var(--danger); font-size: 0.85em; margin-top: 10px; text-align: center; }
+        .message { color: var(--danger); font-size: 0.85rem; margin-top: 12px; text-align: center; font-weight: 500; }
 
-        /* APP TABS NAVIGATION */
-        .app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-        .tab-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: white; padding: 15px; }
+        /* APP BODY & NAVIGATION */
+        .app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        .tab-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px; gap: 20px; }
         
         .bottom-nav {
             display: flex;
-            background: #f0f2f5;
-            border-top: 1px solid #d1d7db;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
             flex-shrink: 0;
+            padding: 6px 0;
         }
         .nav-btn {
             flex: 1;
-            padding: 12px;
+            padding: 10px;
             background: none;
             border: none;
-            color: var(--whatsapp-text-secondary);
-            font-size: 0.85em;
+            color: var(--text-muted);
+            font-size: 0.75rem;
             font-weight: 600;
             display: flex;
             flex-direction: column;
@@ -134,207 +156,194 @@
             cursor: pointer;
             border-radius: 0;
             margin-top: 0;
+            transition: color 0.2s;
         }
-        .nav-btn.active { color: var(--whatsapp-dark); background: #e9edef; }
+        .nav-btn.active { color: var(--primary); }
+
+        /* CARDS & SECTIONS */
+        .card { 
+            background: #ffffff; padding: 16px; border-radius: var(--radius); 
+            border: 1px solid var(--border); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
+            display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;
+        }
 
         /* USER CHIPS */
         .user-chips-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 8px;
-            max-height: 180px;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 10px;
+            max-height: 200px;
             overflow-y: auto;
-            border: 1px solid #d1d7db;
+            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 8px;
-            background: #f9f9f9;
+            padding: 12px;
+            background: #f8fafc;
         }
         .user-chip {
             background: #ffffff;
-            border: 1px solid #d1d7db;
-            border-radius: 6px;
-            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
+            transition: all 0.2s;
         }
-        .user-chip.selected { background: #e1f5fe; border-color: var(--whatsapp-teal); }
+        .user-chip:hover { border-color: var(--primary); }
+        .user-chip.selected { background: var(--primary-light); border-color: var(--primary); }
         .user-chip-icon {
-            width: 20px; height: 20px; border-radius: 50%;
+            width: 28px; height: 28px; border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            font-size: 10px; font-weight: bold; color: white; background: #ccc; flex-shrink: 0;
+            font-size: 0.8rem; font-weight: bold; color: white; background: #94a3b8; flex-shrink: 0;
         }
-        .user-chip.selected .user-chip-icon { background: var(--whatsapp-teal); }
+        .user-chip.selected .user-chip-icon { background: var(--primary); }
         .user-chip-info { overflow: hidden; }
-        .user-chip-name { font-weight: 600; font-size: 0.8em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .user-chip-email { font-size: 0.65em; color: var(--whatsapp-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-chip-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-chip-email { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* WHATSAPP STYLE CHAT LAYOUT */
-        .whatsapp-chat-layout {
+        /* CHAT LAYOUT */
+        .chat-layout {
             display: flex;
             flex: 1;
             overflow: hidden;
-            background: var(--whatsapp-bg);
+            background: #f1f5f9;
             position: relative;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
         }
 
-        .wa-sidebar {
+        .chat-sidebar {
             width: 100%;
-            background: var(--whatsapp-sidebar);
+            background: white;
             display: flex;
             flex-direction: column;
-            border-right: 1px solid var(--whatsapp-border);
+            border-right: 1px solid var(--border);
             z-index: 2;
-            transition: transform 0.3s ease;
         }
 
         @media (min-width: 768px) {
-            .wa-sidebar { width: 340px; flex-shrink: 0; }
-            .wa-main { display: flex !important; }
+            .chat-sidebar { width: 360px; flex-shrink: 0; }
+            .chat-main { display: flex !important; }
         }
 
-        .wa-sidebar-header {
-            padding: 10px 16px;
-            background: #f0f2f5;
+        .chat-sidebar-header {
+            padding: 16px;
+            background: #f8fafc;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--whatsapp-border);
+            border-bottom: 1px solid var(--border);
             font-weight: 600;
-            font-size: 0.95em;
         }
 
-        .wa-rooms-list {
-            flex: 1;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-        }
+        .chat-rooms-list { flex: 1; overflow-y: auto; }
 
-        .wa-room-item {
+        .chat-room-item {
             display: flex;
             align-items: center;
-            padding: 12px 16px;
+            padding: 14px 16px;
             gap: 12px;
             cursor: pointer;
-            border-bottom: 1px solid #f0f2f5;
+            border-bottom: 1px solid #f1f5f9;
             background: white;
-            transition: background 0.1s;
+            transition: background 0.15s;
         }
-        .wa-room-item:hover { background: #f5f6f6; }
-        .wa-room-item.active { background: #f0f2f5; }
+        .chat-room-item:hover { background: #f8fafc; }
+        .chat-room-item.active { background: var(--primary-light); }
         
-        .wa-room-avatar {
-            width: 45px; height: 45px; border-radius: 50%;
-            background: #dfe5e7; display: flex; align-items: center; justify-content: center;
-            font-size: 1.1em; color: #54656f; flex-shrink: 0; font-weight: bold;
+        .room-avatar {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: #e2e8f0; display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); flex-shrink: 0; font-weight: bold;
         }
-        .wa-room-meta { flex: 1; overflow: hidden; }
-        .wa-room-name { font-weight: 600; font-size: 0.95em; color: var(--whatsapp-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .wa-room-sub { font-size: 0.8em; color: var(--whatsapp-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .room-meta { flex: 1; overflow: hidden; }
+        .room-name { font-weight: 600; font-size: 0.95rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .room-sub { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
 
-        /* WA MAIN CHAT WINDOW */
-        .wa-main {
+        /* CHAT MAIN WINDOW */
+        .chat-main {
             display: none;
             flex-direction: column;
             flex: 1;
-            background: var(--whatsapp-chat-bg);
+            background: #efeae2;
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             z-index: 3;
         }
 
         @media (min-width: 768px) {
-            .wa-main { position: relative; display: flex; }
+            .chat-main { position: relative; display: flex; }
             .mobile-back-btn { display: none !important; }
         }
 
-        .wa-chat-header {
-            padding: 10px 16px;
-            background: #f0f2f5;
+        .chat-header {
+            padding: 12px 16px;
+            background: #ffffff;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid var(--whatsapp-border);
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
 
-        .wa-chat-header-left {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            overflow: hidden;
-        }
+        .mobile-back-btn { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; width: auto; margin: 0; display: flex; align-items: center; }
 
-        .mobile-back-btn {
-            background: none; border: none; color: var(--whatsapp-dark); font-size: 1.2rem; cursor: pointer; padding: 0; width: auto; margin: 0;
-        }
-
-        .wa-messages-container {
+        .messages-container {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            background-image: radial-gradient(#0000000a 1px, transparent 1px);
-            background-size: 24px 24px;
+            gap: 8px;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
         }
 
-        .wa-message {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9em;
+        .message-bubble {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.9rem;
             word-wrap: break-word;
-            position: relative;
-            box-shadow: 0 1px 0.5px rgba(0,0,0,0.13);
+            box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
         }
-        .wa-message.my-message { align-self: flex-end; background-color: var(--whatsapp-msg-out); border-top-right-radius: 0; }
-        .wa-message.other-message { align-self: flex-start; background-color: var(--whatsapp-msg-in); border-top-left-radius: 0; }
-        .wa-msg-sender { font-size: 0.75em; font-weight: bold; color: var(--whatsapp-dark); margin-bottom: 2px; }
-        .wa-msg-time { font-size: 0.65em; color: var(--whatsapp-text-secondary); float: right; margin-top: 4px; margin-left: 8px; }
+        .message-bubble.my-message { align-self: flex-end; background-color: #dcf8c6; border-top-right-radius: 2px; }
+        .message-bubble.other-message { align-self: flex-start; background-color: #ffffff; border-top-left-radius: 2px; }
+        .msg-sender { font-size: 0.75rem; font-weight: bold; color: var(--primary-dark); margin-bottom: 3px; }
+        .msg-time { font-size: 0.65rem; color: var(--text-muted); float: right; margin-top: 4px; margin-left: 8px; }
 
-        .wa-input-footer {
-            padding: 10px 16px;
-            background: #f0f2f5;
+        .chat-input-area {
+            padding: 12px 16px;
+            background: #ffffff;
             display: flex;
             align-items: center;
             gap: 10px;
             flex-shrink: 0;
+            border-top: 1px solid var(--border);
         }
-        .wa-input-footer input { flex: 1; background: white; border-radius: 24px; padding: 10px 16px; border: 1px solid #d1d7db; }
-        .wa-send-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--whatsapp-teal); color: white; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; flex-shrink: 0; }
-        .wa-send-btn:hover { background: #019574; }
+        .chat-input-area input { flex: 1; border-radius: 24px; padding: 10px 18px; }
+        .send-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; flex-shrink: 0; }
 
-        /* SETTINGS & MODALS */
-        .chat-settings-panel {
+        /* SETTINGS & MAPS */
+        .settings-panel {
             background: #fff;
-            border-top: 1px solid var(--whatsapp-border);
-            padding: 15px;
-            max-height: 200px;
+            border-top: 1px solid var(--border);
+            padding: 16px;
+            max-height: 220px;
             overflow-y: auto;
             flex-shrink: 0;
         }
 
-        .card { background: #f9f9f9; padding: 12px; margin-top: 10px; border-radius: 8px; border: 1px solid #e9edef; }
-        .admin-group-members-box {
-            max-height: 120px;
-            overflow-y: auto;
-            border: 1px solid #d1d7db;
-            background: #fff;
-            padding: 8px;
-            border-radius: 6px;
-            margin: 6px 0;
-        }
-
-        .map-wrapper { position: relative; width: 100%; height: 220px; margin-top: 5px; }
-        #map { height: 100%; width: 100%; border-radius: 6px; z-index: 1; }
+        .map-wrapper { position: relative; width: 100%; height: 240px; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+        #map { height: 100%; width: 100%; z-index: 1; }
         .map-crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; margin-top: -10px; margin-left: -10px; pointer-events: none; z-index: 1000; }
         .map-crosshair::before, .map-crosshair::after { content: ''; position: absolute; background: var(--danger); }
         .map-crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
         .map-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+
+        .badge-admin { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+        .badge-user { background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -342,12 +351,12 @@
 <div class="container">
     <header>
         <h1>Hütte Dangstetten</h1>
-        <span id="header-user-badge" style="font-size: 0.8em; opacity: 0.9;"></span>
+        <span id="header-user-badge" style="font-size: 0.85rem; opacity: 0.9;"></span>
     </header>
 
     <!-- AUTH SECTION -->
     <div id="auth-section">
-        <h2 id="auth-title" style="margin-top:0; font-size:1.3rem; color:var(--whatsapp-dark);">Anmelden</h2>
+        <h2 id="auth-title" style="margin-top:0; font-size:1.5rem; color:var(--primary-dark);">Anmelden</h2>
         
         <div class="form-group" id="name-group" style="display:none;">
             <label>Name</label>
@@ -367,7 +376,7 @@
         <button id="auth-submit-btn">Anmelden</button>
         <button id="google-login-btn" class="btn-google">Mit Google anmelden</button>
 
-        <p style="text-align: center; margin-top: 15px; font-size:0.9em;">
+        <p style="text-align: center; margin-top: 20px; font-size:0.9rem;">
             <span id="auth-toggle-text">Noch keinen Account?</span>
             <button id="auth-toggle-btn" class="btn-link">Registrieren</button>
         </p>
@@ -382,112 +391,130 @@
             
             <!-- TAB 1: EINLADUNGEN & KARTE -->
             <div id="tab-invite-content" class="tab-content">
-                <h3 style="margin-top:0; color:var(--whatsapp-dark);">Neue Einladung erstellen</h3>
+                <div class="card">
+                    <h3 style="margin:0 0 12px 0; color:var(--primary-dark);">Neue Einladung erstellen</h3>
 
-                <div class="form-group">
-                    <label>Personen auswählen</label>
-                    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-                        <button type="button" class="btn-secondary small-btn" id="select-all-btn">Alle auswählen</button>
-                        <button type="button" class="btn-secondary small-btn" id="deselect-all-btn">Keine</button>
+                    <div class="form-group">
+                        <label>Personen auswählen</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+                            <button type="button" class="btn-secondary small-btn" id="select-all-btn">Alle auswählen</button>
+                            <button type="button" class="btn-secondary small-btn" id="deselect-all-btn">Keine</button>
+                        </div>
+                        <div id="user-chips" class="user-chips-grid"><em>Lade Nutzer...</em></div>
                     </div>
-                    <div id="user-chips" class="user-chips-grid"><em>Lade Nutzer...</em></div>
-                </div>
 
-                <div class="form-group">
-                    <label>Datum & Uhrzeit</label>
-                    <input type="text" id="datetime-picker" placeholder="Datum auswählen...">
-                </div>
-
-                <div class="form-group">
-                    <label>Treffpunkt / Ort</label>
-                    <select id="location-select">
-                        <option value="custom">-- Eigene Karten-Pin verwenden --</option>
-                    </select>
-
-                    <div class="map-wrapper">
-                        <div id="map"></div>
-                        <div class="map-crosshair"></div>
+                    <div class="form-group">
+                        <label>Datum & Uhrzeit</label>
+                        <input type="text" id="datetime-picker" placeholder="Datum auswählen...">
                     </div>
-                    <small style="color: #666; display: block; margin-top: 4px;">Fadenkreuz auf den Treffpunkt zentrieren.</small>
+
+                    <div class="form-group">
+                        <label>Treffpunkt / Ort</label>
+                        <select id="location-select">
+                            <option value="custom">-- Eigene Karten-Pin verwenden --</option>
+                        </select>
+
+                        <div class="map-wrapper">
+                            <div id="map"></div>
+                            <div class="map-crosshair"></div>
+                        </div>
+                        <small style="color: var(--text-muted); display: block; margin-top: 6px;">Fadenkreuz auf den Treffpunkt zentrieren.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ortsbezeichnung (optional)</label>
+                        <input type="text" id="location-name-input" placeholder="z.B. Wanderparkplatz">
+                        <button type="button" id="save-location-btn" class="btn-secondary small-btn" style="margin-top:8px;">Diesen Ort für die Zukunft speichern</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Details / Anmerkungen</label>
+                        <textarea id="details-input" rows="2" placeholder="Getränke mitbringen..."></textarea>
+                    </div>
+
+                    <button id="send-invite-btn">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        Einladung per Mail senden
+                    </button>
                 </div>
 
-                <div class="form-group">
-                    <label>Ortsbezeichnung (optional)</label>
-                    <input type="text" id="location-name-input" placeholder="z.B. Wanderparkplatz">
-                    <button type="button" id="save-location-btn" class="btn-secondary small-btn" style="margin-top:6px;">Diesen Ort für die Zukunft speichern</button>
+                <!-- GESPEICHERTE ORTE VERWALTEN -->
+                <div class="card">
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Gespeicherte Orte verwalten</h3>
+                    <div id="saved-locations-management-list"><em>Lade gespeicherte Orte...</em></div>
                 </div>
 
-                <div class="form-group">
-                    <label>Details / Anmerkungen</label>
-                    <textarea id="details-input" rows="2" placeholder="Getränke mitbringen..."></textarea>
+                <div class="card">
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Bisherige Einladungen</h3>
+                    <div id="invitations-list"><em>Lade Einladungen...</em></div>
                 </div>
-
-                <button id="send-invite-btn">Einladung per Mail senden</button>
-
-                <hr style="margin: 20px 0; border:0; border-top:1px solid #d1d7db;">
-                <h3 style="margin-top:0; color:var(--whatsapp-dark);">Bisherige Einladungen</h3>
-                <div id="invitations-list"><em>Lade Einladungen...</em></div>
             </div>
 
-            <!-- TAB 2: CHAT & NACHRICHTEN EINSTELLUNGEN -->
+            <!-- TAB 2: CHATS & NACHRICHTEN -->
             <div id="tab-chat-content" class="tab-content hidden" style="padding:0;">
-                <div class="whatsapp-chat-layout">
+                <div class="chat-layout">
                     
                     <!-- Sidebar: Vertikale Chat-Liste -->
-                    <div class="wa-sidebar" id="wa-sidebar">
-                        <div class="wa-sidebar-header">
-                            <span>Chats</span>
-                            <span id="admin-group-trigger-icon" class="hidden" style="cursor:pointer; font-size:1.2em;" title="Neue Gruppe erstellen">➕</span>
+                    <div class="chat-sidebar" id="chat-sidebar">
+                        <div class="chat-sidebar-header">
+                            <span>Chats & Gruppen</span>
+                            <span id="admin-group-trigger-icon" class="hidden" style="cursor:pointer;" title="Neue Gruppe erstellen">
+                                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                            </span>
                         </div>
                         
-                        <!-- Admin Gruppen-Erstellung (Inline einklappbar) -->
-                        <div id="admin-group-creator" class="hidden" style="padding: 10px; background: #f0f2f5; border-bottom: 1px solid #d1d7db;">
-                            <strong style="font-size:0.85em;">Neue Gruppe erstellen</strong>
-                            <input type="text" id="group-name-input" placeholder="Gruppenname..." style="margin-top:4px; margin-bottom:6px; font-size:0.9em; padding:8px;">
+                        <!-- Admin Gruppen-Erstellung -->
+                        <div id="admin-group-creator" class="hidden" style="padding: 12px; background: #f8fafc; border-bottom: 1px solid var(--border);">
+                            <strong style="font-size:0.85rem; color:var(--primary-dark);">Neue Gruppe erstellen</strong>
+                            <input type="text" id="group-name-input" placeholder="Gruppenname..." style="margin-top:6px; margin-bottom:8px; font-size:0.9rem;">
                             <button id="create-group-btn" class="small-btn">Gruppe anlegen</button>
                         </div>
 
-                        <div class="wa-rooms-list" id="wa-rooms-list">
-                            <!-- Wird dynamisch befüllt -->
-                        </div>
+                        <div class="chat-rooms-list" id="chat-rooms-list"></div>
                     </div>
 
                     <!-- Hauptfenster Chat -->
-                    <div class="wa-main" id="wa-main">
-                        <div class="wa-chat-header">
-                            <div class="wa-chat-header-left">
-                                <button class="mobile-back-btn" id="mobile-back-btn">⬅</button>
-                                <div class="wa-room-avatar" id="active-chat-avatar">💬</div>
-                                <div>
-                                    <div class="wa-room-name" id="active-chat-title">Hütten-Hauptchat</div>
-                                    <div class="wa-room-sub" id="active-chat-sub">Öffentlicher Raum für alle</div>
+                    <div class="chat-main" id="chat-main">
+                        <div class="chat-header">
+                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                                <button class="mobile-back-btn" id="mobile-back-btn">
+                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                                </button>
+                                <div class="room-avatar" id="active-chat-avatar">
+                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                </div>
+                                <div style="overflow:hidden;">
+                                    <div class="room-name" id="active-chat-title">Hütten-Hauptchat</div>
+                                    <div class="room-sub" id="active-chat-sub">Öffentlicher Raum für alle</div>
                                 </div>
                             </div>
                             <div>
-                                <button id="toggle-chat-settings-btn" class="btn-secondary small-btn hidden" style="background:transparent; color:#54656f; font-size:1.2em; padding:4px;">⚙️</button>
+                                <button id="toggle-chat-settings-btn" class="btn-secondary small-btn hidden" style="background:transparent; color:var(--text-muted); padding:4px;" title="Einstellungen">
+                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                </button>
                             </div>
                         </div>
 
                         <!-- Chat Nachrichten -->
-                        <div class="wa-messages-container" id="chat-messages">
+                        <div class="messages-container" id="chat-messages">
                             <em>Lade Nachrichten...</em>
                         </div>
 
-                        <!-- Gruppen & Nachrichten Einstellungen (Ein-/Ausblendbar) -->
-                        <div id="chat-settings-panel" class="chat-settings-panel hidden">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                                <strong style="font-size:0.9em; color:var(--whatsapp-dark);">Gruppen- & Nachrichteneinstellungen</strong>
-                                <button class="small-btn btn-secondary" onclick="document.getElementById('chat-settings-panel').classList.add('hidden')" style="padding:2px 6px;">✕</button>
+                        <!-- Gruppen Einstellungen Panel -->
+                        <div id="chat-settings-panel" class="settings-panel hidden">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                                <strong style="font-size:0.9rem; color:var(--primary-dark);">Gruppen-Einstellungen</strong>
+                                <button class="small-btn btn-secondary" onclick="document.getElementById('chat-settings-panel').classList.add('hidden')" style="padding:2px 8px;">✕</button>
                             </div>
-                            <div id="group-settings-content">
-                                <!-- Dynamische Admin-Steuerung für Gruppe -->
-                            </div>
+                            <div id="group-settings-content"></div>
                         </div>
 
                         <!-- Eingabebereich -->
-                        <div class="wa-input-footer">
+                        <div class="chat-input-area">
                             <input type="text" id="chat-input" placeholder="Nachricht schreiben...">
-                            <button class="wa-send-btn" id="chat-send-btn">➤</button>
+                            <button class="send-btn" id="chat-send-btn" title="Senden">
+                                <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                            </button>
                         </div>
                     </div>
 
@@ -496,11 +523,11 @@
 
             <!-- TAB 3: PROFIL & ADMIN -->
             <div id="tab-profile-content" class="tab-content hidden">
-                <h3 style="margin-top:0; color:var(--whatsapp-dark);">Profil (<span id="user-display-name"></span>)</h3>
-                <p style="margin-bottom: 15px;">Rolle: <span id="user-role-badge" style="background:#00a884; color:white; padding:2px 6px; border-radius:4px; font-size:0.8em;">User</span></p>
-
                 <div class="card">
-                    <h4 style="margin:0 0 10px 0; font-size:0.95em;">E-Mail-Adresse ändern</h4>
+                    <h3 style="margin:0 0 6px 0; color:var(--primary-dark);">Profil (<span id="user-display-name"></span>)</h3>
+                    <p style="margin:0 0 12px 0; font-size:0.9rem;">Rolle: <span id="user-role-badge" class="badge-user">User</span></p>
+
+                    <h4 style="margin:0 0 8px 0; font-size:0.9rem;">E-Mail-Adresse ändern</h4>
                     <div class="form-group" style="margin-bottom:8px;">
                         <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
                     </div>
@@ -508,11 +535,11 @@
                     <div id="email-change-msg" class="message"></div>
                 </div>
 
-                <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--whatsapp-dark);">
-                    <h4 style="margin:0 0 10px 0; font-size:0.95em;">Admin-Bereich: Nutzerverwaltung</h4>
+                <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzerverwaltung</h3>
                     <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
 
-                    <h4 style="margin: 15px 0 10px 0; font-size:0.95em;">Admin-Bereich: Gruppen verwalten & löschen</h4>
+                    <h3 style="margin: 20px 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Gruppen verwalten</h3>
                     <div id="admin-group-management-list"><em>Lade Gruppen...</em></div>
                 </div>
 
@@ -521,16 +548,19 @@
 
         </div>
 
-        <!-- UNTERE NAVIGATION (WHATSAPP-ÄHNLICH) -->
+        <!-- UNTERE NAVIGATION -->
         <div class="bottom-nav">
             <button class="nav-btn active" id="nav-invite-btn">
-                <span>📅</span> Einladungen
+                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Einladungen
             </button>
             <button class="nav-btn" id="nav-chat-btn">
-                <span>💬</span> Chats
+                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <span>⚙️</span> Profil
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Profil
             </button>
         </div>
 
@@ -579,7 +609,7 @@
     let currentChatRoom = "global";
     let activeChatUnsubscribe = null;
 
-    // Globale Funktionen für Admin-Aktionen
+    // Globale Funktionen für Aktionen
     window.toggleGroupMember = async (groupId, userEmail, add) => {
         const group = chatGroupsList.find(g => g.id === groupId);
         if (!group) return;
@@ -590,21 +620,41 @@
             members = members.filter(e => e !== userEmail);
         }
         try {
-            await updateDoc(doc(db, "chat_groups", groupId), { members: members });
+            await updateDoc(doc(db, "chat_groups", groupId), { members });
         } catch (err) {
             alert('Fehler beim Aktualisieren: ' + err.message);
         }
     };
 
     window.deleteGroup = async (groupId) => {
-        if (confirm("Möchtest du diese Gruppe wirklich unwiderruflich löschen?")) {
+        if (confirm("Möchtest du diese Gruppe wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "chat_groups", groupId));
                 if (currentChatRoom === "group_" + groupId) {
-                    window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle');
+                    window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
                 }
             } catch (err) {
                 alert('Fehler beim Löschen: ' + err.message);
+            }
+        }
+    };
+
+    window.deleteLocation = async (locationId) => {
+        if (confirm("Möchtest du diesen gespeicherten Ort wirklich löschen?")) {
+            try {
+                await deleteDoc(doc(db, "locations", locationId));
+            } catch (err) {
+                alert('Fehler beim Löschen des Ortes: ' + err.message);
+            }
+        }
+    };
+
+    window.deleteInvitation = async (invitationId) => {
+        if (confirm("Möchtest du diesen Einladungs-Eintrag wirklich löschen?")) {
+            try {
+                await deleteDoc(doc(db, "invitations", invitationId));
+            } catch (err) {
+                alert('Fehler beim Löschen der Einladung: ' + err.message);
             }
         }
     };
@@ -620,7 +670,7 @@
         }
     };
 
-    // UI Navigation & Tabs
+    // UI Navigation
     const authSection = document.getElementById('auth-section');
     const appSection = document.getElementById('app-section');
     const authTitle = document.getElementById('auth-title');
@@ -655,16 +705,16 @@
     navChatBtn.addEventListener('click', () => {
         switchTab(navChatBtn, tabChatContent);
         if (window.innerWidth < 768) {
-            document.getElementById('wa-sidebar').style.display = 'flex';
-            document.getElementById('wa-main').style.display = 'none';
+            document.getElementById('chat-sidebar').style.display = 'flex';
+            document.getElementById('chat-main').style.display = 'none';
         }
     });
     navProfileBtn.addEventListener('click', () => switchTab(navProfileBtn, tabProfileContent));
 
     document.getElementById('mobile-back-btn').addEventListener('click', () => {
         if (window.innerWidth < 768) {
-            document.getElementById('wa-sidebar').style.display = 'flex';
-            document.getElementById('wa-main').style.display = 'none';
+            document.getElementById('chat-sidebar').style.display = 'flex';
+            document.getElementById('chat-main').style.display = 'none';
         }
     });
 
@@ -732,6 +782,7 @@
                 
                 const roleBadge = document.getElementById('user-role-badge');
                 roleBadge.innerText = currentUserData.role === 'admin' ? 'Admin' : 'User';
+                roleBadge.className = currentUserData.role === 'admin' ? 'badge-admin' : 'badge-user';
 
                 if (currentUserData.role === 'admin') {
                     document.getElementById('admin-section').classList.remove('hidden');
@@ -752,7 +803,7 @@
         try {
             await updateEmail(auth.currentUser, newEmail);
             await updateDoc(doc(db, "users", auth.currentUser.uid), { email: newEmail });
-            msg.style.color = 'green';
+            msg.style.color = '#10b981';
             msg.innerText = 'E-Mail erfolgreich geändert!';
         } catch (err) {
             msg.style.color = 'var(--danger)';
@@ -820,13 +871,34 @@
         onSnapshot(collection(db, "locations"), (snapshot) => {
             savedLocations = [];
             snapshot.forEach(docSnap => savedLocations.push({ id: docSnap.id, ...docSnap.data() }));
+            
             const select = document.getElementById('location-select');
             select.innerHTML = '<option value="custom">-- Eigene Karten-Pin verwenden --</option>';
+            
+            const managementContainer = document.getElementById('saved-locations-management-list');
+            managementContainer.innerHTML = savedLocations.length === 0 ? '<em>Keine gespeicherten Orte.</em>' : '';
+
             savedLocations.forEach(loc => {
                 const opt = document.createElement('option');
                 opt.value = loc.id;
                 opt.innerText = loc.name;
                 select.appendChild(opt);
+
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'card';
+                itemDiv.style.flexDirection = 'row';
+                itemDiv.style.justifyContent = 'space-between';
+                itemDiv.style.alignItems = 'center';
+                itemDiv.style.padding = '10px 14px';
+                itemDiv.style.marginBottom = '6px';
+                itemDiv.innerHTML = `
+                    <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        <strong>${loc.name}</strong>
+                    </div>
+                    <button class="small-btn delete-btn" onclick="window.deleteLocation('${loc.id}')">Löschen</button>
+                `;
+                managementContainer.appendChild(itemDiv);
             });
         });
     }
@@ -857,42 +929,56 @@
             createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
         });
 
+        const mailSubject = "Einladung zur Hütte Dangstetten";
+        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+
         window.location.href = `mailto:${selectedEmails.join(',')}` +
-            `?subject=${encodeURIComponent("Einladung zur Hütte Dangstetten")}` +
-            `&body=${encodeURIComponent(`Wann: ${datetime}\nDetails: ${details}\nOrt: ${mapsUrl}`)}`;
+            `?subject=${encodeURIComponent(mailSubject)}` +
+            `&body=${encodeURIComponent(mailBody)}`;
     });
 
     function loadInvitations() {
         onSnapshot(query(collection(db, "invitations"), orderBy("createdAt", "desc")), (snapshot) => {
             const container = document.getElementById('invitations-list');
-            container.innerHTML = snapshot.empty ? '<em>Keine Einladungen.</em>' : '';
+            container.innerHTML = snapshot.empty ? '<em>Keine Einladungen vorhanden.</em>' : '';
             snapshot.forEach(docSnap => {
                 const inv = docSnap.data();
+                const invId = docSnap.id;
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <strong>Wann: ${inv.datetime}</strong><br>
-                    <small>Von: ${inv.createdBy} | An: ${inv.recipients ? inv.recipients.join(', ') : 'Alle'}</small><br>
-                    ${inv.details ? `<small>Details: ${inv.details}</small><br>` : ''}
-                    <a href="${inv.mapsUrl}" target="_blank" style="color:var(--whatsapp-dark); font-size:0.85em;">📍 Karte aufrufen</a>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                <strong>Datum: ${inv.datetime}</strong>
+                            </div>
+                            <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Empfänger: ${inv.recipients ? inv.recipients.join(', ') : 'Alle'}</div>
+                            ${inv.details ? `<div style="font-size:0.85rem;">Hinweis: ${inv.details}</div>` : ''}
+                            <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary); font-size:0.85rem; font-weight:500; display:flex; align-items:center; gap:4px; margin-top:4px;">
+                                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                Karte aufrufen
+                            </a>
+                        </div>
+                        <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
+                    </div>
                 `;
                 container.appendChild(card);
             });
         });
     }
 
-    // CHAT & GRUPPEN LOGIK
+    // CHAT SYSTEM
     function getDMId(email1, email2) { return [email1, email2].sort().join("_"); }
 
     function initChatRooms() {
-        window.switchChatRoom("global", "Hütten-Hauptchat", "Öffentlicher Raum für alle", "💬");
+        window.switchChatRoom("global", "Hütten-Hauptchat", "Öffentlicher Raum für alle", '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
     }
 
     const adminGroupTriggerIcon = document.getElementById('admin-group-trigger-icon');
     if(adminGroupTriggerIcon) {
         adminGroupTriggerIcon.onclick = () => {
-            const creatorBox = document.getElementById('admin-group-creator');
-            creatorBox.classList.toggle('hidden');
+            document.getElementById('admin-group-creator').classList.toggle('hidden');
         };
     }
 
@@ -911,33 +997,33 @@
     }
 
     function updateChatRoomsList() {
-        const sidebarList = document.getElementById('wa-rooms-list');
+        const sidebarList = document.getElementById('chat-rooms-list');
         sidebarList.innerHTML = '';
 
-        // Hauptchat
         const globalItem = document.createElement('div');
-        globalItem.className = `wa-room-item ${currentChatRoom === 'global' ? 'active' : ''}`;
+        globalItem.className = `chat-room-item ${currentChatRoom === 'global' ? 'active' : ''}`;
         globalItem.innerHTML = `
-            <div class="wa-room-avatar" style="background:var(--whatsapp-dark); color:white;">🏠</div>
-            <div class="wa-room-meta">
-                <div class="wa-room-name">Hütten-Hauptchat</div>
-                <div class="wa-room-sub">Öffentlicher Raum</div>
+            <div class="room-avatar" style="background:var(--primary-dark); color:white;">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
+            <div class="room-meta">
+                <div class="room-name">Hütten-Hauptchat</div>
+                <div class="room-sub">Öffentlicher Raum</div>
             </div>
         `;
-        globalItem.onclick = () => window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '🏠');
+        globalItem.onclick = () => window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
         sidebarList.appendChild(globalItem);
 
-        // DMs
         usersList.forEach(u => {
             if (auth.currentUser && u.email !== auth.currentUser.email) {
                 const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
                 const dmItem = document.createElement('div');
-                dmItem.className = `wa-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
+                dmItem.className = `chat-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
                 dmItem.innerHTML = `
-                    <div class="wa-room-avatar">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
-                    <div class="wa-room-meta">
-                        <div class="wa-room-name">${u.name}</div>
-                        <div class="wa-room-sub">${u.email}</div>
+                    <div class="room-avatar">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
+                    <div class="room-meta">
+                        <div class="room-name">${u.name}</div>
+                        <div class="room-sub">${u.email}</div>
                     </div>
                 `;
                 dmItem.onclick = () => window.switchChatRoom(dmId, u.name, `Privater Chat`, u.name[0].toUpperCase());
@@ -945,14 +1031,11 @@
             }
         });
 
-        // Gruppenchats
         onSnapshot(collection(db, "chat_groups"), (snapshot) => {
             chatGroupsList = [];
             snapshot.forEach(docSnap => chatGroupsList.push({ id: docSnap.id, ...docSnap.data() }));
 
-            // Alte Gruppen-Elemente aus Sidebar entfernen und neu aufbauen
-            const existingGroups = sidebarList.querySelectorAll('.group-room-item');
-            existingGroups.forEach(el => el.remove());
+            sidebarList.querySelectorAll('.group-room-item').forEach(el => el.remove());
 
             chatGroupsList.forEach(group => {
                 const roomId = "group_" + group.id;
@@ -961,15 +1044,17 @@
 
                 if (isMember || isAdmin) {
                     const groupItem = document.createElement('div');
-                    groupItem.className = `wa-room-item group-room-item ${currentChatRoom === roomId ? 'active' : ''}`;
+                    groupItem.className = `chat-room-item group-room-item ${currentChatRoom === roomId ? 'active' : ''}`;
                     groupItem.innerHTML = `
-                        <div class="wa-room-avatar" style="background:#025043; color:white;">👥</div>
-                        <div class="wa-room-meta">
-                            <div class="wa-room-name">${group.name}</div>
-                            <div class="wa-room-sub">Gruppenchat (${group.members ? group.members.length : 0} Mitglieder)</div>
+                        <div class="room-avatar" style="background:var(--primary); color:white;">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
+                        <div class="room-meta">
+                            <div class="room-name">${group.name}</div>
+                            <div class="room-sub">Gruppe (${group.members ? group.members.length : 0} Mitglieder)</div>
                         </div>
                     `;
-                    groupItem.onclick = () => window.switchChatRoom(roomId, group.name, `Gruppenchat`, '👥');
+                    groupItem.onclick = () => window.switchChatRoom(roomId, group.name, `Gruppenchat`, '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
                     sidebarList.appendChild(groupItem);
                 }
             });
@@ -977,22 +1062,19 @@
         });
     }
 
-    window.switchChatRoom = (roomId, title, subtitle, avatarText) => {
+    window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
         currentChatRoom = roomId;
         document.getElementById('active-chat-title').innerText = title;
         document.getElementById('active-chat-sub').innerText = subtitle;
-        document.getElementById('active-chat-avatar').innerText = avatarText || '💬';
+        document.getElementById('active-chat-avatar').innerHTML = avatarHTML || '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
 
-        // Auf Mobile Ansicht umschalten
         if (window.innerWidth < 768) {
-            document.getElementById('wa-sidebar').style.display = 'none';
-            document.getElementById('wa-main').style.display = 'flex';
+            document.getElementById('chat-sidebar').style.display = 'none';
+            document.getElementById('chat-main').style.display = 'flex';
         }
 
-        // Aktiven Room in Liste markieren
-        document.querySelectorAll('.wa-room-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.chat-room-item').forEach(el => el.classList.remove('active'));
 
-        // Einstellungen-Button anzeigen falls Gruppenchat und Admin
         const settingsBtn = document.getElementById('toggle-chat-settings-btn');
         const settingsPanel = document.getElementById('chat-settings-panel');
         settingsPanel.classList.add('hidden');
@@ -1020,12 +1102,12 @@
                 const msg = docSnap.data();
                 const isMe = auth.currentUser && auth.currentUser.email === msg.senderEmail;
                 const msgDiv = document.createElement('div');
-                msgDiv.className = `wa-message ${isMe ? 'my-message' : 'other-message'}`;
+                msgDiv.className = `message-bubble ${isMe ? 'my-message' : 'other-message'}`;
                 const timeStr = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
                 msgDiv.innerHTML = `
-                    ${!isMe ? `<div class="wa-msg-sender">${msg.senderName || msg.senderEmail}</div>` : ''}
+                    ${!isMe ? `<div class="msg-sender">${msg.senderName || msg.senderEmail}</div>` : ''}
                     <div>${msg.text}</div>
-                    <div class="wa-msg-time">${timeStr}</div>
+                    <div class="msg-time">${timeStr}</div>
                 `;
                 container.appendChild(msgDiv);
             });
@@ -1039,11 +1121,11 @@
 
     function setupGroupSettingsPanel(group) {
         const content = document.getElementById('group-settings-content');
-        let membersHtml = '<div style="font-size:0.85em; margin-bottom:6px;"><strong>Mitglieder zuweisen:</strong><div class="admin-group-members-box">';
+        let membersHtml = '<div style="font-size:0.85rem; margin-bottom:8px;"><strong>Mitglieder zuweisen:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">';
         usersList.forEach(u => {
             const isChecked = group.members && group.members.includes(u.email) ? 'checked' : '';
-            membersHtml += `<label style="display:block; margin-bottom:3px; font-weight:normal;">
-                <input type="checkbox" ${isChecked} onchange="window.toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name} (${u.email})
+            membersHtml += `<label style="display:block; margin-bottom:4px; font-weight:normal; font-size:0.85rem;">
+                <input type="checkbox" ${isChecked} onchange="window.toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name}
             </label>`;
         });
         membersHtml += '</div></div>';
@@ -1071,8 +1153,10 @@
         usersList.forEach(u => {
             const div = document.createElement('div');
             div.className = 'card';
+            div.style.padding = '10px';
+            div.style.marginBottom = '8px';
             div.innerHTML = `
-                <div style="font-size:0.9em;"><strong>${u.name}</strong> (${u.email})<br><small>Rolle: ${u.role}</small></div>
+                <div style="font-size:0.85rem;"><strong>${u.name}</strong> (${u.email})<br>Rolle: ${u.role}</div>
                 <div style="margin-top:6px; display:flex; gap:6px;">
                     <button class="small-btn btn-secondary" onclick="window.toggleUserRole('${u.id}', '${u.role}')">Rolle ändern</button>
                     <button class="small-btn delete-btn" onclick="window.deleteUserDoc('${u.id}')">Löschen</button>
@@ -1089,17 +1173,19 @@
         chatGroupsList.forEach(group => {
             const div = document.createElement('div');
             div.className = 'card';
-            let membersHtml = '<div style="margin: 6px 0; font-size:0.85em;"><strong>Mitglieder:</strong><div class="admin-group-members-box">';
+            div.style.padding = '10px';
+            div.style.marginBottom = '8px';
+            let membersHtml = '<div style="margin: 6px 0; font-size:0.85rem;"><strong>Mitglieder:</strong><div style="max-height:100px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">';
             usersList.forEach(u => {
                 const isChecked = group.members && group.members.includes(u.email) ? 'checked' : '';
-                membersHtml += `<label style="display:block; margin-bottom:3px; font-weight:normal;">
+                membersHtml += `<label style="display:block; margin-bottom:3px; font-weight:normal; font-size:0.85rem;">
                     <input type="checkbox" ${isChecked} onchange="window.toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name}
                 </label>`;
             });
             membersHtml += '</div></div>';
 
             div.innerHTML = `
-                <div style="font-size:0.9em;"><strong>👥 ${group.name}</strong></div>
+                <div style="font-size:0.9rem;"><strong>Gruppe: ${group.name}</strong></div>
                 ${membersHtml}
                 <button class="small-btn delete-btn" onclick="window.deleteGroup('${group.id}')">Gruppe löschen</button>
             `;
