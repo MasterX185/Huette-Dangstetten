@@ -391,7 +391,8 @@
             
             <!-- TAB 1: EINLADUNGEN & KARTE -->
             <div id="tab-invite-content" class="tab-content">
-                <div class="card">
+                <!-- Admin-only Einladungs-Erstellung -->
+                <div class="card admin-only-element hidden" id="admin-invite-creator-card">
                     <h3 style="margin:0 0 12px 0; color:var(--primary-dark);">Neue Einladung erstellen</h3>
 
                     <div class="form-group">
@@ -438,14 +439,14 @@
                     </button>
                 </div>
 
-                <!-- GESPEICHERTE ORTE VERWALTEN -->
-                <div class="card">
+                <!-- GESPEICHERTE ORTE VERWALTEN (Admin-only) -->
+                <div class="card admin-only-element hidden" id="admin-locations-manager-card">
                     <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Gespeicherte Orte verwalten</h3>
                     <div id="saved-locations-management-list"><em>Lade gespeicherte Orte...</em></div>
                 </div>
 
                 <div class="card">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Bisherige Einladungen</h3>
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Einladungen</h3>
                     <div id="invitations-list"><em>Lade Einladungen...</em></div>
                 </div>
             </div>
@@ -559,7 +560,7 @@
                 Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1 z"/></svg>
                 Profil
             </button>
         </div>
@@ -609,8 +610,9 @@
     let currentChatRoom = "global";
     let activeChatUnsubscribe = null;
 
-    // Globale Funktionen für Aktionen
+    // Globale Funktionen für Admin-Aktionen (mit Rollenprüfung)
     window.toggleGroupMember = async (groupId, userEmail, add) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         const group = chatGroupsList.find(g => g.id === groupId);
         if (!group) return;
         let members = group.members || [];
@@ -627,6 +629,7 @@
     };
 
     window.deleteGroup = async (groupId) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         if (confirm("Möchtest du diese Gruppe wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "chat_groups", groupId));
@@ -640,6 +643,7 @@
     };
 
     window.deleteLocation = async (locationId) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         if (confirm("Möchtest du diesen gespeicherten Ort wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "locations", locationId));
@@ -650,6 +654,7 @@
     };
 
     window.deleteInvitation = async (invitationId) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         if (confirm("Möchtest du diesen Einladungs-Eintrag wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "invitations", invitationId));
@@ -660,11 +665,13 @@
     };
 
     window.toggleUserRole = async (uid, currentRole) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         const newRole = currentRole === 'admin' ? 'user' : 'admin';
         await updateDoc(doc(db, "users", uid), { role: newRole });
     };
 
     window.deleteUserDoc = async (uid) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         if (confirm("Nutzer wirklich löschen?")) {
             await deleteDoc(doc(db, "users", uid));
         }
@@ -787,6 +794,11 @@
                 if (currentUserData.role === 'admin') {
                     document.getElementById('admin-section').classList.remove('hidden');
                     document.getElementById('admin-group-trigger-icon').classList.remove('hidden');
+                    document.querySelectorAll('.admin-only-element').forEach(el => el.classList.remove('hidden'));
+                } else {
+                    document.getElementById('admin-section').classList.add('hidden');
+                    document.getElementById('admin-group-trigger-icon').classList.add('hidden');
+                    document.querySelectorAll('.admin-only-element').forEach(el => el.classList.add('hidden'));
                 }
             }
             initApp();
@@ -814,8 +826,10 @@
     document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
 
     function initApp() {
-        initMap();
-        initFlatpickr();
+        if (currentUserData && currentUserData.role === 'admin') {
+            initMap();
+            initFlatpickr();
+        }
         loadUsers();
         loadLocations();
         loadInvitations();
@@ -836,14 +850,17 @@
         onSnapshot(collection(db, "users"), (snapshot) => {
             usersList = [];
             snapshot.forEach(docSnap => usersList.push({ id: docSnap.id, ...docSnap.data() }));
-            renderUserChips();
-            renderAdminUsers();
+            if (currentUserData && currentUserData.role === 'admin') {
+                renderUserChips();
+                renderAdminUsers();
+            }
             updateChatRoomsList();
         });
     }
 
     function renderUserChips() {
         const container = document.getElementById('user-chips');
+        if (!container) return;
         container.innerHTML = '';
         usersList.forEach(u => {
             const chip = document.createElement('div');
@@ -864,8 +881,10 @@
         });
     }
 
-    document.getElementById('select-all-btn').onclick = () => { usersList.forEach(u => selectedUserEmails.add(u.email)); renderUserChips(); };
-    document.getElementById('deselect-all-btn').onclick = () => { selectedUserEmails.clear(); renderUserChips(); };
+    const selectAllBtn = document.getElementById('select-all-btn');
+    if (selectAllBtn) selectAllBtn.onclick = () => { usersList.forEach(u => selectedUserEmails.add(u.email)); renderUserChips(); };
+    const deselectAllBtn = document.getElementById('deselect-all-btn');
+    if (deselectAllBtn) deselectAllBtn.onclick = () => { selectedUserEmails.clear(); renderUserChips(); };
 
     function loadLocations() {
         onSnapshot(collection(db, "locations"), (snapshot) => {
@@ -873,98 +892,127 @@
             snapshot.forEach(docSnap => savedLocations.push({ id: docSnap.id, ...docSnap.data() }));
             
             const select = document.getElementById('location-select');
-            select.innerHTML = '<option value="custom">-- Eigene Karten-Pin verwenden --</option>';
+            if (select) {
+                select.innerHTML = '<option value="custom">-- Eigene Karten-Pin verwenden --</option>';
+                savedLocations.forEach(loc => {
+                    const opt = document.createElement('option');
+                    opt.value = loc.id;
+                    opt.innerText = loc.name;
+                    select.appendChild(opt);
+                });
+            }
             
             const managementContainer = document.getElementById('saved-locations-management-list');
-            managementContainer.innerHTML = savedLocations.length === 0 ? '<em>Keine gespeicherten Orte.</em>' : '';
-
-            savedLocations.forEach(loc => {
-                const opt = document.createElement('option');
-                opt.value = loc.id;
-                opt.innerText = loc.name;
-                select.appendChild(opt);
-
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'card';
-                itemDiv.style.flexDirection = 'row';
-                itemDiv.style.justifyContent = 'space-between';
-                itemDiv.style.alignItems = 'center';
-                itemDiv.style.padding = '10px 14px';
-                itemDiv.style.marginBottom = '6px';
-                itemDiv.innerHTML = `
-                    <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
-                        <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                        <strong>${loc.name}</strong>
-                    </div>
-                    <button class="small-btn delete-btn" onclick="window.deleteLocation('${loc.id}')">Löschen</button>
-                `;
-                managementContainer.appendChild(itemDiv);
-            });
+            if (managementContainer) {
+                managementContainer.innerHTML = savedLocations.length === 0 ? '<em>Keine gespeicherten Orte.</em>' : '';
+                savedLocations.forEach(loc => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'card';
+                    itemDiv.style.flexDirection = 'row';
+                    itemDiv.style.justifyContent = 'space-between';
+                    itemDiv.style.alignItems = 'center';
+                    itemDiv.style.padding = '10px 14px';
+                    itemDiv.style.marginBottom = '6px';
+                    itemDiv.innerHTML = `
+                        <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                            <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <strong>${loc.name}</strong>
+                        </div>
+                        <button class="small-btn delete-btn" onclick="window.deleteLocation('${loc.id}')">Löschen</button>
+                    `;
+                    managementContainer.appendChild(itemDiv);
+                });
+            }
         });
     }
 
-    document.getElementById('location-select').addEventListener('change', (e) => {
-        const loc = savedLocations.find(l => l.id === e.target.value);
-        if (loc && map) map.setView([loc.lat, loc.lng], 16);
-    });
-
-    document.getElementById('save-location-btn').addEventListener('click', async () => {
-        const name = document.getElementById('location-name-input').value.trim();
-        if (!name) { alert('Bitte Ortsnamen eingeben.'); return; }
-        const center = map.getCenter();
-        await addDoc(collection(db, "locations"), { name, lat: center.lat, lng: center.lng });
-        alert('Ort gespeichert!');
-        document.getElementById('location-name-input').value = '';
-    });
-
-    document.getElementById('send-invite-btn').addEventListener('click', async () => {
-        const selectedEmails = Array.from(selectedUserEmails);
-        if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
-        const datetime = document.getElementById('datetime-picker').value;
-        const details = document.getElementById('details-input').value;
-        const center = map.getCenter();
-        const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
-
-        await addDoc(collection(db, "invitations"), {
-            createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
+    const locationSelect = document.getElementById('location-select');
+    if (locationSelect) {
+        locationSelect.addEventListener('change', (e) => {
+            const loc = savedLocations.find(l => l.id === e.target.value);
+            if (loc && map) map.setView([loc.lat, loc.lng], 16);
         });
+    }
 
-        const mailSubject = "Einladung zur Hütte Dangstetten";
-        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+    const saveLocationBtn = document.getElementById('save-location-btn');
+    if (saveLocationBtn) {
+        saveLocationBtn.addEventListener('click', async () => {
+            if (!currentUserData || currentUserData.role !== 'admin') return;
+            const name = document.getElementById('location-name-input').value.trim();
+            if (!name) { alert('Bitte Ortsnamen eingeben.'); return; }
+            const center = map.getCenter();
+            await addDoc(collection(db, "locations"), { name, lat: center.lat, lng: center.lng });
+            alert('Ort gespeichert!');
+            document.getElementById('location-name-input').value = '';
+        });
+    }
 
-        window.location.href = `mailto:${selectedEmails.join(',')}` +
-            `?subject=${encodeURIComponent(mailSubject)}` +
-            `&body=${encodeURIComponent(mailBody)}`;
-    });
+    const sendInviteBtn = document.getElementById('send-invite-btn');
+    if (sendInviteBtn) {
+        sendInviteBtn.addEventListener('click', async () => {
+            if (!currentUserData || currentUserData.role !== 'admin') return;
+            const selectedEmails = Array.from(selectedUserEmails);
+            if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
+            const datetime = document.getElementById('datetime-picker').value;
+            const details = document.getElementById('details-input').value;
+            const center = map.getCenter();
+            const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+
+            await addDoc(collection(db, "invitations"), {
+                createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
+            });
+
+            const mailSubject = "Einladung zur Hütte Dangstetten";
+            const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+
+            window.location.href = `mailto:${selectedEmails.join(',')}` +
+                `?subject=${encodeURIComponent(mailSubject)}` +
+                `&body=${encodeURIComponent(mailBody)}`;
+        });
+    }
 
     function loadInvitations() {
         onSnapshot(query(collection(db, "invitations"), orderBy("createdAt", "desc")), (snapshot) => {
             const container = document.getElementById('invitations-list');
-            container.innerHTML = snapshot.empty ? '<em>Keine Einladungen vorhanden.</em>' : '';
+            if (!container) return;
+            container.innerHTML = '';
+            
+            let count = 0;
             snapshot.forEach(docSnap => {
                 const inv = docSnap.data();
                 const invId = docSnap.id;
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="display:flex; flex-direction:column; gap:4px;">
-                            <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
-                                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                <strong>Datum: ${inv.datetime}</strong>
+                const isAdmin = currentUserData && currentUserData.role === 'admin';
+                const isRecipient = auth.currentUser && inv.recipients && inv.recipients.includes(auth.currentUser.email);
+
+                // User dürfen nur Einladungen sehen, in denen sie eingeladen sind
+                if (isAdmin || isRecipient) {
+                    count++;
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
+                                    <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                    <strong>Datum: ${inv.datetime}</strong>
+                                </div>
+                                <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Empfänger: ${inv.recipients ? inv.recipients.join(', ') : 'Alle'}</div>
+                                ${inv.details ? `<div style="font-size:0.85rem;">Hinweis: ${inv.details}</div>` : ''}
+                                <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary); font-size:0.85rem; font-weight:500; display:flex; align-items:center; gap:4px; margin-top:4px;">
+                                    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                                    Karte aufrufen
+                                </a>
                             </div>
-                            <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Empfänger: ${inv.recipients ? inv.recipients.join(', ') : 'Alle'}</div>
-                            ${inv.details ? `<div style="font-size:0.85rem;">Hinweis: ${inv.details}</div>` : ''}
-                            <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary); font-size:0.85rem; font-weight:500; display:flex; align-items:center; gap:4px; margin-top:4px;">
-                                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                Karte aufrufen
-                            </a>
+                            ${isAdmin ? `<button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>` : ''}
                         </div>
-                        <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
-                    </div>
-                `;
-                container.appendChild(card);
+                    `;
+                    container.appendChild(card);
+                }
             });
+
+            if (count === 0) {
+                container.innerHTML = '<em>Keine Einladungen vorhanden, in denen du eingetragen bist.</em>';
+            }
         });
     }
 
@@ -978,13 +1026,16 @@
     const adminGroupTriggerIcon = document.getElementById('admin-group-trigger-icon');
     if(adminGroupTriggerIcon) {
         adminGroupTriggerIcon.onclick = () => {
-            document.getElementById('admin-group-creator').classList.toggle('hidden');
+            if (currentUserData && currentUserData.role === 'admin') {
+                document.getElementById('admin-group-creator').classList.toggle('hidden');
+            }
         };
     }
 
     const createGroupBtn = document.getElementById('create-group-btn');
     if (createGroupBtn) {
         createGroupBtn.onclick = async () => {
+            if (!currentUserData || currentUserData.role !== 'admin') return;
             const nameInput = document.getElementById('group-name-input');
             const name = nameInput.value.trim();
             if (!name) return;
@@ -1120,6 +1171,7 @@
     };
 
     function setupGroupSettingsPanel(group) {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         const content = document.getElementById('group-settings-content');
         let membersHtml = '<div style="font-size:0.85rem; margin-bottom:8px;"><strong>Mitglieder zuweisen:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">';
         usersList.forEach(u => {
@@ -1147,6 +1199,7 @@
     }
 
     function renderAdminUsers() {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         const container = document.getElementById('admin-user-list');
         if (!container) return;
         container.innerHTML = '';
@@ -1167,6 +1220,7 @@
     }
 
     function renderAdminGroups() {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
         const container = document.getElementById('admin-group-management-list');
         if (!container) return;
         container.innerHTML = chatGroupsList.length === 0 ? '<em>Keine Gruppen.</em>' : '';
