@@ -150,6 +150,8 @@
         button:hover { background-color: var(--primary-dark); }
         .btn-secondary { background-color: #34495e; }
         .btn-secondary:hover { background-color: #2c3e50; }
+        .btn-google { background-color: #4285F4; margin-top: 10px; }
+        .btn-google:hover { background-color: #357ae8; }
         .btn-link { background: none; color: var(--primary-dark); border: none; text-decoration: underline; width: auto; cursor: pointer; padding: 0; font-size: 0.9em; }
         .logout-btn { background-color: #7f8c8d; margin-top: 20px; }
         .delete-btn { background-color: #e74c3c; margin-top: 10px; }
@@ -157,6 +159,7 @@
 
         .hidden { display: none !important; }
         .message { color: #d35400; font-size: 0.9em; margin-top: 10px; }
+        .alert-box { background: #fff3cd; border: 1px solid #ffe8a1; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 15px; }
         .card { background: #f9f9f9; padding: 12px; margin-top: 10px; border-radius: 8px; border-left: 4px solid var(--primary); display: flex; flex-direction: column; gap: 8px; }
         
         @media (min-width: 480px) {
@@ -201,739 +204,66 @@
         }
 
         .map-crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
-        .map-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+        .map-crosshair::after { top: 0; left: 9px; width:Um diese drei Anforderungen sauber umzusetzen, muss der Authentifizierungsflow sowohl im **Backend** (Datenmodell, E-Mail-Versand, Auth-Logik) als auch im **Frontend** erweitert werden.
 
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            height: 450px;
-            margin-top: 15px;
-            background: #efeae2;
-            overflow: hidden;
-        }
+Hier ist der konstruktive Architektur- und Logikplan dazu inkl. kritischer Punkte, die oft übersehen werden:
 
-        @media (min-width: 600px) {
-            .chat-container { flex-direction: row; }
-        }
+---
 
-        .chat-users-list {
-            width: 100%;
-            max-height: 120px;
-            border-bottom: 1px solid #ccc;
-            background: #fff;
-            overflow-y: auto;
-        }
+### 1. E-Mail-Bestätigung (Email Verification)
 
-        @media (min-width: 600px) {
-            .chat-users-list {
-                width: 35%;
-                max-height: none;
-                border-bottom: none;
-                border-right: 1px solid #ccc;
-            }
-        }
+**Soll-Prozess:**
+1. Nach Registrierung wird der Account als `is_verified = false` gespeichert.
+2. Es wird ein kryptografisch sicherer Token (oder ein 6-stelliger Code) generiert, der mit einer Ablaufzeit (z. B. 24 Stunden) in der Datenbank gespeichert wird.
+3. Der User erhält eine E-Mail mit einem Bestätigungslink (`/verify-email?token=xyz`).
+4. Beim Klick wird `is_verified = true` gesetzt und der Token gelöscht/entwertet.
 
-        .user-chat-item {
-            padding: 10px 12px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
-            font-size: 0.9em;
-        }
+**Kritischer Einwand & Optimierung:**
+* **Zugangsbeschränkung:** Soll der User sich vor der Verifizierung gar nicht einloggen können, oder darf er rein, sieht aber eine Sperre für bestimmte Funktionen? Ein *Hard-Lock* (kein Login ohne E-Mail-Bestätigung) ist sicherer und verhindert Spam-Leichen mit vollem Zugriff.
+* **Resend-Button:** Denke zwingend an eine Funktion "Bestätigungs-E-Mail erneut senden" mit einem Rate-Limit (z. B. max. 1 Mail alle 60 Sekunden), falls die Mail im Spam landet.
 
-        .user-chat-item:hover, .user-chat-item.active {
-            background-color: #f0f2f5;
-            font-weight: bold;
-        }
+---
 
-        .chat-main {
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+### 2. E-Mail-Adresse ändern
 
-        @media (min-width: 600px) {
-            .chat-main { width: 65%; }
-        }
+**Soll-Prozess:**
+1. Der User gibt im Profilbereich seine neue E-Mail-Adresse ein.
+2. Zur Sicherheit muss er sein **aktuelles Passwort** erneut eingeben (Schutz vor Session-Hijacking).
+3. **Wichtig:** Die neue E-Mail-Adresse wird *nicht* sofort überschrieben, sondern in einem Feld `pending_email` gespeichert.
+4. Eine Bestätigungs-E-Mail geht an die **neue** E-Mail-Adresse.
+5. Erst nach Klick auf den Bestätigungslink wird `email = pending_email` gesetzt und `pending_email` geleert.
 
-        .chat-header {
-            padding: 10px;
-            background: #f0f2f5;
-            border-bottom: 1px solid #ccc;
-            font-weight: bold;
-            font-size: 0.9em;
-        }
+**Kritischer Einwand & Optimierung:**
+* Ändert man die E-Mail sofort ohne Verifizierung der neuen Adresse, kann sich der User bei einem Tippfehler selbst aussperren.
+* Zusätzlich sollte eine Benachrichtigung an die *alte* E-Mail-Adresse geschickt werden ("Ihre E-Mail-Adresse wurde geändert"), falls das Konto kompromittiert wurde.
 
-        .chat-messages {
-            flex: 1;
-            padding: 10px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+---
 
-        .chat-bubble {
-            max-width: 85%;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 0.9em;
-            word-wrap: break-word;
-        }
+### 3. Login per Google (OAuth 2.0 / OpenID Connect)
 
-        .chat-bubble.sent {
-            background-color: var(--chat-my-msg);
-            align-self: flex-end;
-            border-top-right-radius: 0;
-        }
+**Soll-Prozess:**
+1. Einbindung des Google-Sign-In-Buttons im Frontend.
+2. Der User authentifiziert sich bei Google.
+3. Das Backend empfängt das ID-Token von Google, verifiziert es über die Google-Bibliotheken und liest E-Mail sowie Google-ID (`sub`) aus.
 
-        .chat-bubble.received {
-            background-color: var(--chat-other-msg);
-            align-self: flex-start;
-            border-top-left-radius: 0;
-        }
+**Kritischer Einwand & Account-Merging Logik:**
+* **Automatische Verifizierung:** E-Mail-Adressen, die über Google einloggen, gelten bei Google bereits als verifiziert. Hier entfällt der manuelle E-Mail-Bestätigungsschritt.
+* **Das E-Mail-Konflikt-Problem:** Was passiert, wenn sich jemand erst per E-Mail/Passwort registriert (`user@gmail.com`) und später auf "Mit Google anmelden" klickt?
+  * *Falsch:* Einen zweiten Account anlegen oder den Login verweigern.
+  * *Richtig:* Wenn die E-Mail-Adresse bereits existiert **und** verifiziert ist, verknüpfe die `google_id` mit dem bestehenden Account.
 
-        .chat-time {
-            font-size: 0.65em;
-            color: #888;
-            text-align: right;
-            margin-top: 3px;
-        }
+---
 
-        .chat-input-area {
-            display: flex;
-            padding: 8px;
-            background: #f0f2f5;
-            border-top: 1px solid #ccc;
-        }
+### Erforderliche Datenbankschema-Anpassungen
 
-        .chat-input-area input {
-            flex: 1;
-            margin-right: 8px;
-            border-radius: 20px;
-            border: 1px solid #ccc;
-            padding: 8px 15px;
-        }
+| Feld | Typ | Beschreibung |
+| :--- | :--- | :--- |
+| `is_verified` | Boolean (Default: `false`) | Status der E-Mail-Bestätigung |
+| `verification_token` | String (Nullable) | Hash des E-Mail-Bestätigungstokens |
+| `verification_expires` | Timestamp (Nullable) | Ablaufdatum des Tokens |
+| `pending_email` | String (Nullable) | Neue E-Mail bis zur Bestätigung |
+| `google_id` | String (Nullable, Unique) | Eindeutige ID von Google für OAuth |
 
-        .chat-input-area button {
-            width: auto;
-            border-radius: 20px;
-            padding: 8px 15px;
-            margin-top: 0;
-        }
-    </style>
-</head>
-<body>
+---
 
-<div class="container">
-    <header>
-        <h1>Hütte Dangstetten</h1>
-    </header>
-
-    <!-- AUTH SECTION -->
-    <div id="auth-section">
-        <h2 id="auth-title">Anmelden</h2>
-        
-        <div class="form-group" id="group-name" style="display: none;">
-            <label for="name">Vollständiger Name</label>
-            <input type="text" id="name" placeholder="Max Mustermann">
-        </div>
-
-        <div class="form-group">
-            <label for="email">E-Mail</label>
-            <input type="email" id="email" placeholder="beispiel@domain.de">
-        </div>
-
-        <div class="form-group" id="group-password">
-            <label for="password">Passwort</label>
-            <input type="password" id="password" placeholder="Passwort">
-        </div>
-
-        <button id="btn-login">Anmelden</button>
-        <button id="btn-register" class="btn-secondary hidden">Konto erstellen</button>
-        <button id="btn-reset-pw" class="btn-secondary hidden">Passwort-Reset senden</button>
-
-        <div style="display: flex; justify-content: space-between; margin-top: 15px;">
-            <button id="link-toggle-reg" class="btn-link">Konto erstellen</button>
-            <button id="link-forgot-pw" class="btn-link">Passwort vergessen?</button>
-        </div>
-
-        <p id="auth-error" class="message"></p>
-    </div>
-
-    <!-- DASHBOARD SECTION -->
-    <div id="dashboard-section" class="hidden">
-        <h2>Hallo, <span id="user-display-name"></span>!</h2>
-        <p style="font-size: 0.85em; color: #666;">Angemeldet als: <span id="user-email"></span></p>
-
-        <!-- CHAT SECTION -->
-        <h3>Direktnachrichten</h3>
-        <div class="chat-container">
-            <div class="chat-users-list" id="chat-users-list"></div>
-            <div class="chat-main">
-                <div class="chat-header" id="chat-header-title">Wähle einen Chat aus</div>
-                <div class="chat-messages" id="chat-messages-box">
-                    <p style="text-align: center; color: #888; font-size: 0.85em; margin-top: 20px;">Wähle eine Person aus, um zu chatten.</p>
-                </div>
-                <div class="chat-input-area hidden" id="chat-input-area">
-                    <input type="text" id="chat-input-msg" placeholder="Nachricht schreiben...">
-                    <button id="btn-send-chat">Senden</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- EINLADUNGEN BEREICH -->
-        <h3 style="margin-top: 30px;">Deine Einladungen</h3>
-        <div id="invitation-list">Lädt Einladungen...</div>
-
-        <!-- BEREICH NUR FÜR ADMIN -->
-        <div id="admin-view" class="hidden">
-            <div class="admin-section-box">
-                <h3>Admin: Einladung senden</h3>
-                
-                <div class="form-group">
-                    <label>Empfänger durch Antippen auswählen:</label>
-                    <div class="select-all-box">
-                        <button type="button" class="btn-secondary small-btn" id="btn-select-all">Alle auswählen</button>
-                        <button type="button" class="btn-secondary small-btn" id="btn-deselect-all">Auswahl aufheben</button>
-                    </div>
-                    <div class="user-chips-grid" id="invite-user-chips"></div>
-                </div>
-
-                <div class="form-group">
-                    <label for="invite-date">Datum & Uhrzeit</label>
-                    <input type="text" id="invite-date" placeholder="Datum wählen...">
-                </div>
-
-                <!-- STANDORT NEU / GESPEICHERT -->
-                <div class="form-group">
-                    <label for="select-saved-location">Gespeicherten Standort wählen:</label>
-                    <select id="select-saved-location">
-                        <option value="">-- Standort auf der Karte manuell wählen --</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label>Treffpunkt auf der Karte festlegen:</label>
-                    <div class="map-wrapper">
-                        <div id="map"></div>
-                        <div class="map-crosshair"></div>
-                    </div>
-                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">Position unter dem Fadenkreuz festlegen</button>
-                    <small id="location-status" style="display:block; margin-top: 5px; color: #27ae60; font-weight: bold;"></small>
-                </div>
-
-                <!-- STANDORT NEU SPEICHERN -->
-                <div class="form-group" style="background: #eef7f6; padding: 10px; border-radius: 6px;">
-                    <label for="location-name">Aktuelle Kartenposition als Vorlage speichern:</label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="text" id="location-name" placeholder="z.B. Hütte Dangstetten, Grillplatz..." style="margin-bottom:0;">
-                        <button type="button" id="btn-save-location-template" class="small-btn" style="width: auto; white-space: nowrap;">Speichern</button>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="invite-details">Infos / Details</label>
-                    <textarea id="invite-details" rows="2" placeholder="Zusätzliche Infos..."></textarea>
-                </div>
-
-                <button id="btn-send-invite">Einladung speichern & Mail-Programm öffnen</button>
-                <p id="admin-msg" class="message"></p>
-            </div>
-
-            <div class="admin-section-box">
-                <h3>Gespeicherte Orte verwalten</h3>
-                <div id="admin-saved-locations-list">Lädt...</div>
-            </div>
-
-            <div class="admin-section-box">
-                <h3>Nutzerverwaltung</h3>
-                <div id="admin-users-list">Lädt...</div>
-            </div>
-
-            <div class="admin-section-box">
-                <h3>Alle Einladungen verwalten</h3>
-                <div id="admin-invitations-list">Lädt...</div>
-            </div>
-        </div>
-
-        <button id="btn-logout" class="logout-btn">Abmelden</button>
-        <button id="btn-delete-account" class="delete-btn">Eigenes Konto löschen</button>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { 
-      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, 
-      sendPasswordResetEmail, signOut, onAuthStateChanged, deleteUser
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  import { 
-      getFirestore, doc, setDoc, getDoc, updateDoc, addDoc, deleteDoc,
-      collection, query, where, orderBy, getDocs, onSnapshot, serverTimestamp 
-  } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyCLhOlcwKeqtdNNF_HrFA0xavgOgZjHMPw",
-    authDomain: "huette-dangstetten-3a737.firebaseapp.com",
-    projectId: "huette-dangstetten-3a737",
-    storageBucket: "huette-dangstetten-3a737.firebasestorage.app",
-    messagingSenderId: "700971650309",
-    appId: "1:700971650309:web:0793b2667578bc8eea7b6c"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  let currentUserData = null;
-  let selectedChatPartner = null;
-  let chatUnsubscribe = null;
-  let map = null, marker = null;
-  let selectedLat = 47.5756, selectedLng = 8.2436;
-
-  flatpickr("#invite-date", { enableTime: true, dateFormat: "d.m.Y H:i", locale: "de", minDate: "today" });
-
-  let authMode = 'login';
-  const authError = document.getElementById('auth-error');
-
-  document.getElementById('link-toggle-reg').addEventListener('click', () => {
-      if (authMode === 'login') {
-          authMode = 'register';
-          document.getElementById('auth-title').textContent = "Konto erstellen";
-          document.getElementById('group-name').style.display = 'block';
-          document.getElementById('group-password').style.display = 'block';
-          document.getElementById('btn-login').classList.add('hidden');
-          document.getElementById('btn-register').classList.remove('hidden');
-          document.getElementById('btn-reset-pw').classList.add('hidden');
-          document.getElementById('link-toggle-reg').textContent = "Zurück zum Login";
-      } else {
-          showLoginMode();
-      }
-  });
-
-  document.getElementById('link-forgot-pw').addEventListener('click', () => {
-      authMode = 'reset';
-      document.getElementById('auth-title').textContent = "Passwort zurücksetzen";
-      document.getElementById('group-name').style.display = 'none';
-      document.getElementById('group-password').style.display = 'none';
-      document.getElementById('btn-login').classList.add('hidden');
-      document.getElementById('btn-register').classList.add('hidden');
-      document.getElementById('btn-reset-pw').classList.remove('hidden');
-      document.getElementById('link-toggle-reg').textContent = "Zurück zum Login";
-  });
-
-  function showLoginMode() {
-      authMode = 'login';
-      document.getElementById('auth-title').textContent = "Anmelden";
-      document.getElementById('group-name').style.display = 'none';
-      document.getElementById('group-password').style.display = 'block';
-      document.getElementById('btn-login').classList.remove('hidden');
-      document.getElementById('btn-register').classList.add('hidden');
-      document.getElementById('btn-reset-pw').classList.add('hidden');
-      document.getElementById('link-toggle-reg').textContent = "Noch kein Konto? Registrieren";
-  }
-
-  document.getElementById('btn-reset-pw').addEventListener('click', async () => {
-      const email = document.getElementById('email').value.trim();
-      authError.textContent = '';
-      if (!email) { authError.textContent = "Bitte E-Mail angeben."; return; }
-      try {
-          await sendPasswordResetEmail(auth, email);
-          authError.style.color = "green";
-          authError.textContent = "Passwort-Reset-E-Mail wurde gesendet!";
-      } catch (error) {
-          authError.style.color = "#d35400";
-          authError.textContent = "Fehler: " + error.message;
-      }
-  });
-
-  document.getElementById('btn-login').addEventListener('click', async () => {
-      authError.textContent = '';
-      try {
-          await signInWithEmailAndPassword(auth, document.getElementById('email').value.trim(), document.getElementById('password').value);
-      } catch (err) { authError.style.color = "#d35400"; authError.textContent = err.message; }
-  });
-
-  document.getElementById('btn-register').addEventListener('click', async () => {
-      const name = document.getElementById('name').value.trim();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      authError.textContent = '';
-      if (!name || !email || !password) return alert("Bitte alle Felder ausfüllen!");
-
-      try {
-          const cred = await createUserWithEmailAndPassword(auth, email, password);
-          await setDoc(doc(db, "users", cred.user.uid), { name, email, role: "user" });
-      } catch (err) { authError.style.color = "#d35400"; authError.textContent = err.message; }
-  });
-
-  document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
-
-  document.getElementById('btn-delete-account').addEventListener('click', async () => {
-      if (!confirm("Möchtest du dein Konto unwiderruflich löschen?")) return;
-      const user = auth.currentUser;
-      if (user) {
-          try {
-              await deleteDoc(doc(db, "users", user.uid));
-              await deleteUser(user);
-              alert("Konto erfolgreich gelöscht.");
-          } catch (error) {
-              alert("Fehler beim Löschen: " + error.message + "\n(Melde dich bitte kurz ab, wieder an und versuche es erneut).");
-          }
-      }
-  });
-
-  onAuthStateChanged(auth, async (user) => {
-      if (user) {
-          document.getElementById('auth-section').classList.add('hidden');
-          document.getElementById('dashboard-section').classList.remove('hidden');
-          document.getElementById('user-email').textContent = user.email;
-
-          const uDoc = await getDoc(doc(db, "users", user.uid));
-          if (uDoc.exists()) {
-              currentUserData = { uid: user.uid, ...uDoc.data() };
-              document.getElementById('user-display-name').textContent = currentUserData.name || user.email;
-
-              if (currentUserData.role === 'admin') {
-                  document.getElementById('admin-view').classList.remove('hidden');
-                  loadAdminUsers();
-                  loadAdminInvitations();
-                  loadSavedLocations();
-                  initMap();
-              } else {
-                  document.getElementById('admin-view').classList.add('hidden');
-              }
-          }
-          loadInvitations(user.email);
-          loadChatUsersList();
-      } else {
-          document.getElementById('auth-section').classList.remove('hidden');
-          document.getElementById('dashboard-section').classList.add('hidden');
-          showLoginMode();
-      }
-  });
-
-  // CHAT SYSTEM
-  function loadChatUsersList() {
-      onSnapshot(collection(db, "users"), (snapshot) => {
-          const listEl = document.getElementById('chat-users-list');
-          listEl.innerHTML = '';
-          snapshot.forEach(docSnap => {
-              const u = docSnap.data();
-              if (docSnap.id !== auth.currentUser.uid) {
-                  const div = document.createElement('div');
-                  div.className = 'user-chat-item';
-                  div.innerHTML = `<strong>${u.name || 'Unbekannt'}</strong><br><small style="color:#777">${u.email}</small>`;
-                  div.onclick = () => openChat({ uid: docSnap.id, name: u.name, email: u.email }, div);
-                  listEl.appendChild(div);
-              }
-          });
-      });
-  }
-
-  function openChat(partner, itemEl) {
-      selectedChatPartner = partner;
-      document.querySelectorAll('.user-chat-item').forEach(el => el.classList.remove('active'));
-      if(itemEl) itemEl.classList.add('active');
-
-      document.getElementById('chat-header-title').textContent = partner.name || partner.email;
-      document.getElementById('chat-input-area').classList.remove('hidden');
-
-      if (chatUnsubscribe) chatUnsubscribe();
-
-      const chatId = [auth.currentUser.uid, partner.uid].sort().join('_');
-      const q = query(collection(db, "chats", chatId, "messages"), orderBy("timestamp", "asc"));
-
-      chatUnsubscribe = onSnapshot(q, (snapshot) => {
-          const box = document.getElementById('chat-messages-box');
-          box.innerHTML = '';
-          snapshot.forEach(docSnap => {
-              const msg = docSnap.data();
-              const isMine = msg.senderUid === auth.currentUser.uid;
-              const timeStr = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-
-              const bubble = document.createElement('div');
-              bubble.className = `chat-bubble ${isMine ? 'sent' : 'received'}`;
-              bubble.innerHTML = `${msg.text}<div class="chat-time">${timeStr}</div>`;
-              box.appendChild(bubble);
-          });
-          box.scrollTop = box.scrollHeight;
-      }, (error) => {
-          console.error("Chat-Fehler:", error);
-      });
-  }
-
-  document.getElementById('btn-send-chat').addEventListener('click', sendChatMessage);
-  document.getElementById('chat-input-msg').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendChatMessage();
-  });
-
-  async function sendChatMessage() {
-      const textInput = document.getElementById('chat-input-msg');
-      const text = textInput.value.trim();
-      if (!text || !selectedChatPartner) return;
-
-      const chatId = [auth.currentUser.uid, selectedChatPartner.uid].sort().join('_');
-      textInput.value = '';
-
-      await addDoc(collection(db, "chats", chatId, "messages"), {
-          senderUid: auth.currentUser.uid,
-          text: text,
-          timestamp: serverTimestamp()
-      });
-  }
-
-  // GESPEICHERTE ORTE / STANDORTE VERWALTEN (KORRIGIERT & FEHLERFREI GELADEN)
-  function loadSavedLocations() {
-      onSnapshot(collection(db, "locations"), (snapshot) => {
-          const selectEl = document.getElementById('select-saved-location');
-          const adminLocList = document.getElementById('admin-saved-locations-list');
-          
-          selectEl.innerHTML = '<option value="">-- Standort auf der Karte manuell wählen --</option>';
-          adminLocList.innerHTML = snapshot.empty ? '<p>Keine gespeicherten Orte vorhanden.</p>' : '';
-
-          snapshot.forEach(docSnap => {
-              const loc = docSnap.data();
-              const id = docSnap.id;
-
-              const opt = document.createElement('option');
-              opt.value = JSON.stringify({lat: loc.lat, lng: loc.lng});
-              opt.textContent = loc.name;
-              selectEl.appendChild(opt);
-
-              const card = document.createElement('div');
-              card.className = 'card';
-              card.innerHTML = `
-                  <div>
-                      <strong>Standort: ${loc.name}</strong><br>
-                      <small>Lat: ${loc.lat.toFixed(4)}, Lng: ${loc.lng.toFixed(4)}</small>
-                  </div>
-                  <button class="small-btn delete-btn" onclick="deleteLocation('${id}')">Löschen</button>
-              `;
-              adminLocList.appendChild(card);
-          });
-      }, (error) => {
-          console.error("Fehler beim Laden der Standorte:", error);
-          document.getElementById('admin-saved-locations-list').innerHTML = '<p>Fehler beim Laden der Orte.</p>';
-      });
-  }
-
-  document.getElementById('select-saved-location').addEventListener('change', (e) => {
-      if (!e.target.value) return;
-      const pos = JSON.parse(e.target.value);
-      selectedLat = pos.lat;
-      selectedLng = pos.lng;
-
-      if (map && marker) {
-          map.setView([selectedLat, selectedLng], 15);
-          marker.setLatLng([selectedLat, selectedLng]);
-          document.getElementById('location-status').textContent = 'Standort aus Vorlage übernommen!';
-      }
-  });
-
-  document.getElementById('btn-save-location-template').addEventListener('click', async () => {
-      const nameInput = document.getElementById('location-name');
-      const name = nameInput.value.trim();
-
-      if (!name) return alert("Bitte gib einen Namen für diesen Standort ein!");
-
-      const center = map ? map.getCenter() : { lat: selectedLat, lng: selectedLng };
-
-      try {
-          await addDoc(collection(db, "locations"), {
-              name: name,
-              lat: center.lat,
-              lng: center.lng,
-              createdAt: new Date()
-          });
-
-          nameInput.value = '';
-          alert(`Standort "${name}" wurde erfolgreich gespeichert!`);
-      } catch (err) {
-          alert("Fehler beim Speichern des Standorts: " + err.message);
-      }
-  });
-
-  window.deleteLocation = async (id) => {
-      if (confirm("Diesen gespeicherten Standort löschen?")) {
-          await deleteDoc(doc(db, "locations", id));
-      }
-  };
-
-  // ADMIN VERWALTUNG & LISTEN
-  function loadAdminUsers() {
-      onSnapshot(collection(db, "users"), (snapshot) => {
-          const chipsContainer = document.getElementById('invite-user-chips');
-          const usersList = document.getElementById('admin-users-list');
-          chipsContainer.innerHTML = '';
-          usersList.innerHTML = '';
-
-          snapshot.forEach(docSnap => {
-              const u = docSnap.data();
-              const uid = docSnap.id;
-
-              const chip = document.createElement('div');
-              chip.className = 'user-chip';
-              chip.dataset.userData = JSON.stringify({email: u.email, name: u.name});
-              chip.innerHTML = `
-                  <div class="user-chip-icon">X</div>
-                  <div class="user-chip-info">
-                      <div class="user-chip-name">${u.name || 'Unbekannt'}</div>
-                      <div class="user-chip-email">${u.email}</div>
-                  </div>
-              `;
-              
-              chip.addEventListener('click', () => {
-                  chip.classList.toggle('selected');
-              });
-
-              chipsContainer.appendChild(chip);
-
-              const isSelf = auth.currentUser && auth.currentUser.uid === uid;
-              const card = document.createElement('div');
-              card.className = 'card';
-              card.innerHTML = `
-                  <div>
-                      <strong>${u.name || 'Ohne Name'}</strong> (${u.email}) 
-                      <span class="${u.role === 'admin' ? 'badge-admin' : 'badge-user'}">${u.role}</span>
-                  </div>
-                  <div>
-                      ${!isSelf ? `
-                          <button class="small-btn btn-secondary" onclick="toggleRole('${uid}', '${u.role}')">Rolle ändern</button>
-                          <button class="small-btn delete-btn" onclick="deleteUserDoc('${uid}')">Löschen</button>
-                      ` : '<em>(Du)</em>'}
-                  </div>
-              `;
-              usersList.appendChild(card);
-          });
-      });
-  }
-
-  document.getElementById('btn-select-all').addEventListener('click', () => {
-      document.querySelectorAll('.user-chip').forEach(chip => chip.classList.add('selected'));
-  });
-
-  document.getElementById('btn-deselect-all').addEventListener('click', () => {
-      document.querySelectorAll('.user-chip').forEach(chip => chip.classList.remove('selected'));
-  });
-
-  function loadAdminInvitations() {
-      onSnapshot(collection(db, "invitations"), (snapshot) => {
-          const invList = document.getElementById('admin-invitations-list');
-          invList.innerHTML = snapshot.empty ? '<p>Keine Einladungen vorhanden.</p>' : '';
-
-          snapshot.forEach(docSnap => {
-              const inv = docSnap.data();
-              const card = document.createElement('div');
-              card.className = 'card';
-              card.innerHTML = `
-                  <div>
-                      <strong>An:</strong> ${inv.recipientName} (${inv.recipientEmail})<br>
-                      <strong>Wann:</strong> ${inv.date}<br>
-                      <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">Google Maps Link</a>
-                  </div>
-                  <button class="small-btn delete-btn" onclick="deleteInvite('${docSnap.id}')">Löschen</button>
-              `;
-              invList.appendChild(card);
-          });
-      });
-  }
-
-  window.toggleRole = async (uid, currentRole) => {
-      const newRole = currentRole === 'admin' ? 'user' : 'admin';
-      await updateDoc(doc(db, "users", uid), { role: newRole });
-  };
-
-  window.deleteUserDoc = async (uid) => {
-      if (confirm("Nutzer aus Datenbank entfernen?")) {
-          await deleteDoc(doc(db, "users", uid));
-      }
-  };
-
-  window.deleteInvite = async (id) => {
-      if (confirm("Einladung löschen?")) {
-          await deleteDoc(doc(db, "invitations", id));
-      }
-  };
-
-  // EINLADUNG VORBEREITEN
-  document.getElementById('btn-send-invite').addEventListener('click', async () => {
-      const selectedChips = Array.from(document.querySelectorAll('.user-chip.selected'));
-      const inviteDate = document.getElementById('invite-date').value;
-      const details = document.getElementById('invite-details').value.trim();
-
-      if (selectedChips.length === 0 || !inviteDate) return alert("Bitte mindestens einen Nutzer und ein Datum auswählen!");
-
-      const mapsUrl = `https://www.google.com/maps?q=${selectedLat},${selectedLng}`;
-      const users = selectedChips.map(chip => JSON.parse(chip.dataset.userData));
-      const emails = users.map(u => u.email).join(',');
-
-      for (const u of users) {
-          await addDoc(collection(db, "invitations"), {
-              recipientEmail: u.email, recipientName: u.name,
-              date: inviteDate, details, mapsUrl, createdAt: new Date()
-          });
-      }
-
-      const subject = encodeURIComponent("Einladung zur Hütte Dangstetten");
-      const body = encodeURIComponent(`Hallo zusammen,\n\ndu wurdest eingeladen!\n\nWann: ${inviteDate}\nInfos: ${details || '-'}\n\nGoogle Maps:\n${mapsUrl}`);
-      window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
-  });
-
-  function loadInvitations(userEmail) {
-      const q = query(collection(db, "invitations"), where("recipientEmail", "==", userEmail));
-      onSnapshot(q, (snapshot) => {
-          const list = document.getElementById('invitation-list');
-          list.innerHTML = snapshot.empty ? '<p>Keine Einladungen vorhanden.</p>' : '';
-          snapshot.forEach(docSnap => {
-              const inv = docSnap.data();
-              list.innerHTML += `
-                  <div class="card">
-                      <div>
-                          <strong>Datum: ${inv.date}</strong><br>
-                          <small>${inv.details || ''}</small><br>
-                          <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">Auf Karte anzeigen</a>
-                      </div>
-                  </div>`;
-          });
-      });
-  }
-
-  // KARTEN-INITIALISIERUNG
-  function initMap() {
-      setTimeout(() => {
-          if (!map) {
-              map = L.map('map').setView([selectedLat, selectedLng], 14);
-
-              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                  maxZoom: 19,
-                  attribution: '© OpenStreetMap'
-              }).addTo(map);
-
-              marker = L.marker([selectedLat, selectedLng]).addTo(map);
-
-              document.getElementById('btn-set-location').addEventListener('click', () => {
-                  const center = map.getCenter();
-                  selectedLat = center.lat;
-                  selectedLng = center.lng;
-                  
-                  marker.setLatLng(center);
-                  document.getElementById('location-status').textContent = 'Standort erfolgreich unter dem Fadenkreuz gespeichert!';
-              });
-          }
-
-          map.invalidateSize();
-      }, 400);
-  }
-</script>
-
-</body>
-</html>
+Passt diese Logik zu deinem Tech-Stack (welches Backend/Database nutzt du?), oder möchtest du konkrete Code-Beispiele für die Umsetzung der Controller/Endpoints sehen?
