@@ -63,7 +63,6 @@
             font-size: 16px;
         }
 
-        /* CHIP-/KARTEN-SYSTEM FÜR NUTZERAUSWAHL */
         .user-chips-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -75,10 +74,7 @@
             padding: 10px;
             background: #f9f9f9;
             -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
             user-select: none;
-            -webkit-touch-callout: none;
         }
 
         .user-chip {
@@ -93,9 +89,7 @@
             gap: 8px;
         }
 
-        .user-chip:active {
-            transform: scale(0.97);
-        }
+        .user-chip:active { transform: scale(0.97); }
 
         .user-chip.selected {
             background: #e8f8f5;
@@ -123,9 +117,7 @@
             border-color: var(--primary);
         }
 
-        .user-chip-info {
-            overflow: hidden;
-        }
+        .user-chip-info { overflow: hidden; }
 
         .user-chip-name {
             font-weight: bold;
@@ -175,7 +167,6 @@
         .badge-user { background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; }
         .admin-section-box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 15px; }
 
-        /* KARTEN-CONTAINER MIT FADENKREUZ */
         .map-wrapper {
             position: relative;
             width: 100%;
@@ -209,15 +200,9 @@
             background: #e74c3c;
         }
 
-        .map-crosshair::before {
-            top: 9px; left: 0; width: 20px; height: 2px;
-        }
+        .map-crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
+        .map-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
 
-        .map-crosshair::after {
-            top: 0; left: 9px; width: 2px; height: 20px;
-        }
-
-        /* RESPONSIVER CHAT */
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -385,13 +370,13 @@
         <p style="font-size: 0.85em; color: #666;">Angemeldet als: <span id="user-email"></span></p>
 
         <!-- CHAT SECTION -->
-        <h3>💬 Direktnachrichten</h3>
+        <h3>Direktnachrichten</h3>
         <div class="chat-container">
             <div class="chat-users-list" id="chat-users-list"></div>
             <div class="chat-main">
                 <div class="chat-header" id="chat-header-title">Wähle einen Chat aus</div>
                 <div class="chat-messages" id="chat-messages-box">
-                    <p style="text-align: center; color: #888; font-size: 0.85em; margin-top: 20px;">Wähle oben/links eine Person aus, um zu chatten.</p>
+                    <p style="text-align: center; color: #888; font-size: 0.85em; margin-top: 20px;">Wähle eine Person aus, um zu chatten.</p>
                 </div>
                 <div class="chat-input-area hidden" id="chat-input-area">
                     <input type="text" id="chat-input-msg" placeholder="Nachricht schreiben...">
@@ -437,7 +422,7 @@
                         <div id="map"></div>
                         <div class="map-crosshair"></div>
                     </div>
-                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">📍 Position unter dem Fadenkreuz festlegen</button>
+                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">Position unter dem Fadenkreuz festlegen</button>
                     <small id="location-status" style="display:block; margin-top: 5px; color: #27ae60; font-weight: bold;"></small>
                 </div>
 
@@ -516,7 +501,6 @@
 
   flatpickr("#invite-date", { enableTime: true, dateFormat: "d.m.Y H:i", locale: "de", minDate: "today" });
 
-  // AUTH UI UMSCHALTUNG
   let authMode = 'login';
   const authError = document.getElementById('auth-error');
 
@@ -557,7 +541,6 @@
       document.getElementById('link-toggle-reg').textContent = "Noch kein Konto? Registrieren";
   }
 
-  // PASSWORT ZURÜCKSETZEN
   document.getElementById('btn-reset-pw').addEventListener('click', async () => {
       const email = document.getElementById('email').value.trim();
       authError.textContent = '';
@@ -594,7 +577,6 @@
 
   document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-  // EIGENES KONTO LÖSCHEN
   document.getElementById('btn-delete-account').addEventListener('click', async () => {
       if (!confirm("Möchtest du dein Konto unwiderruflich löschen?")) return;
       const user = auth.currentUser;
@@ -709,7 +691,7 @@
       });
   }
 
-  // GESPEICHERTE ORTE / STANDORTE VERWALTEN
+  // GESPEICHERTE ORTE / STANDORTE VERWALTEN (KORRIGIERT & FEHLERFREI GELADEN)
   function loadSavedLocations() {
       onSnapshot(collection(db, "locations"), (snapshot) => {
           const selectEl = document.getElementById('select-saved-location');
@@ -722,28 +704,28 @@
               const loc = docSnap.data();
               const id = docSnap.id;
 
-              // Ins Dropdown einfügen
               const opt = document.createElement('option');
               opt.value = JSON.stringify({lat: loc.lat, lng: loc.lng});
               opt.textContent = loc.name;
               selectEl.appendChild(opt);
 
-              // In die Liste für Admins einfügen
               const card = document.createElement('div');
               card.className = 'card';
               card.innerHTML = `
                   <div>
-                      <strong>${loc.name}</strong><br>
+                      <strong>Standort: ${loc.name}</strong><br>
                       <small>Lat: ${loc.lat.toFixed(4)}, Lng: ${loc.lng.toFixed(4)}</small>
                   </div>
                   <button class="small-btn delete-btn" onclick="deleteLocation('${id}')">Löschen</button>
               `;
               adminLocList.appendChild(card);
           });
+      }, (error) => {
+          console.error("Fehler beim Laden der Standorte:", error);
+          document.getElementById('admin-saved-locations-list').innerHTML = '<p>Fehler beim Laden der Orte.</p>';
       });
   }
 
-  // Standort im Dropdown auswählen
   document.getElementById('select-saved-location').addEventListener('change', (e) => {
       if (!e.target.value) return;
       const pos = JSON.parse(e.target.value);
@@ -753,29 +735,31 @@
       if (map && marker) {
           map.setView([selectedLat, selectedLng], 15);
           marker.setLatLng([selectedLat, selectedLng]);
-          document.getElementById('location-status').textContent = '✓ Standort aus Vorlage übernommen!';
+          document.getElementById('location-status').textContent = 'Standort aus Vorlage übernommen!';
       }
   });
 
-  // Neuen Standort als Vorlage speichern
   document.getElementById('btn-save-location-template').addEventListener('click', async () => {
       const nameInput = document.getElementById('location-name');
       const name = nameInput.value.trim();
 
       if (!name) return alert("Bitte gib einen Namen für diesen Standort ein!");
 
-      // Nimmt den aktuellen Mittelpunkt der Karte (oder des Fadenkreuzes)
       const center = map ? map.getCenter() : { lat: selectedLat, lng: selectedLng };
 
-      await addDoc(collection(db, "locations"), {
-          name: name,
-          lat: center.lat,
-          lng: center.lng,
-          createdAt: new Date()
-      });
+      try {
+          await addDoc(collection(db, "locations"), {
+              name: name,
+              lat: center.lat,
+              lng: center.lng,
+              createdAt: new Date()
+          });
 
-      nameInput.value = '';
-      alert(`Standort "${name}" wurde erfolgreich gespeichert!`);
+          nameInput.value = '';
+          alert(`Standort "${name}" wurde erfolgreich gespeichert!`);
+      } catch (err) {
+          alert("Fehler beim Speichern des Standorts: " + err.message);
+      }
   });
 
   window.deleteLocation = async (id) => {
@@ -800,7 +784,7 @@
               chip.className = 'user-chip';
               chip.dataset.userData = JSON.stringify({email: u.email, name: u.name});
               chip.innerHTML = `
-                  <div class="user-chip-icon">✓</div>
+                  <div class="user-chip-icon">X</div>
                   <div class="user-chip-info">
                       <div class="user-chip-name">${u.name || 'Unbekannt'}</div>
                       <div class="user-chip-email">${u.email}</div>
@@ -854,7 +838,7 @@
                   <div>
                       <strong>An:</strong> ${inv.recipientName} (${inv.recipientEmail})<br>
                       <strong>Wann:</strong> ${inv.date}<br>
-                      <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">📍 Maps</a>
+                      <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">Google Maps Link</a>
                   </div>
                   <button class="small-btn delete-btn" onclick="deleteInvite('${docSnap.id}')">Löschen</button>
               `;
@@ -899,7 +883,7 @@
           });
       }
 
-      const subject = encodeURIComponent("Einladung zur Hütte Dangstetten!");
+      const subject = encodeURIComponent("Einladung zur Hütte Dangstetten");
       const body = encodeURIComponent(`Hallo zusammen,\n\ndu wurdest eingeladen!\n\nWann: ${inviteDate}\nInfos: ${details || '-'}\n\nGoogle Maps:\n${mapsUrl}`);
       window.location.href = `mailto:${emails}?subject=${subject}&body=${body}`;
   });
@@ -914,9 +898,9 @@
               list.innerHTML += `
                   <div class="card">
                       <div>
-                          <strong>${inv.date}</strong><br>
+                          <strong>Datum: ${inv.date}</strong><br>
                           <small>${inv.details || ''}</small><br>
-                          <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">📍 Auf Karte anzeigen</a>
+                          <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">Auf Karte anzeigen</a>
                       </div>
                   </div>`;
           });
@@ -942,7 +926,7 @@
                   selectedLng = center.lng;
                   
                   marker.setLatLng(center);
-                  document.getElementById('location-status').textContent = '✓ Standort erfolgreich unter dem Fadenkreuz gespeichert!';
+                  document.getElementById('location-status').textContent = 'Standort erfolgreich unter dem Fadenkreuz gespeichert!';
               });
           }
 
