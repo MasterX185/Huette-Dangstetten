@@ -427,9 +427,16 @@
             
             <!-- TAB 1: EINLADUNGEN & KARTE -->
             <div id="tab-invite-content" class="tab-content">
-                <!-- Admin-only Einladungs-Erstellung -->
+                <!-- Admin-only Einladungs-Erstellung & Editor -->
                 <div class="card admin-only-element hidden" id="admin-invite-creator-card">
-                    <h3 style="margin:0 0 12px 0; color:var(--primary-dark);">Neue Einladung erstellen</h3>
+                    <h3 style="margin:0 0 12px 0; color:var(--primary-dark);">Neue Einladung erstellen & Personalisieren</h3>
+
+                    <div class="form-group">
+                        <label>Gespeicherte Vorlage laden</label>
+                        <select id="template-select">
+                            <option value="">-- Neue Nachricht / Keine Vorlage --</option>
+                        </select>
+                    </div>
 
                     <div class="form-group">
                         <label>Personen auswählen</label>
@@ -465,13 +472,22 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Details / Anmerkungen</label>
-                        <textarea id="details-input" rows="2" placeholder="Getränke mitbringen..."></textarea>
+                        <label>E-Mail Betreff</label>
+                        <input type="text" id="email-subject-input" value="Einladung zur Hütte Dangstetten">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nachrichten-Inhalt (Verwende <code style="background:#e2e8f0; padding:2px 4px; border-radius:4px;">{{name}}</code> für den Namen)</label>
+                        <textarea id="email-message-input" rows="6" placeholder="Hallo {{name}},&#10;&#10;hiermit lade ich dich herzlich ein..."></textarea>
+                        <div style="display:flex; gap:8px; margin-top:8px;">
+                            <input type="text" id="template-name-input" placeholder="Name für neue Vorlage..." style="flex:1;">
+                            <button type="button" id="save-template-btn" class="btn-secondary small-btn" style="width:auto;">Als Vorlage speichern</button>
+                        </div>
                     </div>
 
                     <button id="send-invite-btn">
                         <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                        Einladung über GMX senden
+                        Einladung personalisiert über GMX senden
                     </button>
                 </div>
 
@@ -649,6 +665,7 @@
     let currentUserData = null;
     let usersList = [];
     let tagsList = [];
+    let templatesList = [];
     let selectedUserEmails = new Set();
     let savedLocations = [];
     let map = null;
@@ -788,7 +805,7 @@
         window.closeModal();
 
         document.getElementById('datetime-picker')._flatpickr.setDate(inv.datetime, true);
-        document.getElementById('details-input').value = inv.details || '';
+        document.getElementById('email-message-input').value = inv.details || '';
         
         selectedUserEmails.clear();
         if (inv.recipients) {
@@ -806,7 +823,7 @@
 
     function resetSendButtonToCreate() {
         const sendBtn = document.getElementById('send-invite-btn');
-        sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung über GMX senden`;
+        sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung personalisiert über GMX senden`;
         sendBtn.onclick = createNewInvitation;
     }
 
@@ -959,6 +976,7 @@
         }
         loadUsers();
         loadTags();
+        loadTemplates();
         loadLocations();
         loadInvitations();
     }
@@ -1003,6 +1021,59 @@
             updateChatRoomsList();
         });
     }
+
+    function loadTemplates() {
+        onSnapshot(collection(db, "templates"), (snapshot) => {
+            templatesList = [];
+            snapshot.forEach(docSnap => templatesList.push({ id: docSnap.id, ...docSnap.data() }));
+            
+            const select = document.getElementById('template-select');
+            if (select) {
+                select.innerHTML = '<option value="">-- Neue Nachricht / Keine Vorlage --</option>';
+                templatesList.forEach(tpl => {
+                    const opt = document.createElement('option');
+                    opt.value = tpl.id;
+                    opt.innerText = tpl.name;
+                    select.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    document.getElementById('template-select')?.addEventListener('change', (e) => {
+        const tplId = e.target.value;
+        const tpl = templatesList.find(t => t.id === tplId);
+        if (tpl) {
+            document.getElementById('email-subject-input').value = tpl.subject || '';
+            document.getElementById('email-message-input').value = tpl.content || '';
+        }
+    });
+
+    document.getElementById('save-template-btn')?.addEventListener('click', async () => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
+        const nameInput = document.getElementById('template-name-input');
+        const name = nameInput.value.trim();
+        const subject = document.getElementById('email-subject-input').value;
+        const content = document.getElementById('email-message-input').value;
+
+        if (!name) {
+            alert('Bitte gib einen Namen für die Vorlage ein.');
+            return;
+        }
+
+        try {
+            await addDoc(collection(db, "templates"), {
+                name,
+                subject,
+                content,
+                createdAt: serverTimestamp()
+            });
+            alert('Vorlage erfolgreich gespeichert!');
+            nameInput.value = '';
+        } catch (err) {
+            alert('Fehler beim Speichern der Vorlage: ' + err.message);
+        }
+    });
 
     function renderProfileTags() {
         const container = document.getElementById('user-profile-tags');
@@ -1144,67 +1215,88 @@
 
     async function createNewInvitation() {
         if (!currentUserData || currentUserData.role !== 'admin') return;
-        const selectedEmails = Array.from(selectedUserEmails);
         
-        // Strenge Prüfung, ob Empfänger ausgewählt wurden
-        if (selectedEmails.length === 0) { 
+        const selectedUsers = usersList.filter(u => selectedUserEmails.has(u.email));
+        
+        if (selectedUsers.length === 0) { 
             alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
             return; 
         }
 
         const datetime = document.getElementById('datetime-picker').value;
-        const details = document.getElementById('details-input').value;
+        const subjectTemplate = document.getElementById('email-subject-input').value;
+        const messageTemplate = document.getElementById('email-message-input').value;
         const center = map.getCenter();
         const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
 
-        // Empfänger-String korrekt generieren (kommagetrennt)
-        const recipientString = selectedEmails.join(',');
+        const recipientEmails = selectedUsers.map(u => u.email);
 
         try {
             await addDoc(collection(db, "invitations"), {
-                createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
+                createdBy: auth.currentUser.email, 
+                recipients: recipientEmails, 
+                datetime, 
+                details: messageTemplate, 
+                mapsUrl, 
+                createdAt: serverTimestamp()
             });
 
-            await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
-                to_email: recipientString,
-                subject: "Einladung zur Hütte Dangstetten",
-                message: `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}`,
-                from_name: currentUserData.name,
-                reply_to: currentUserData.email
-            });
+            for (const user of selectedUsers) {
+                let personalizedMessage = messageTemplate
+                    .replace(/{{name}}/g, user.name || 'Teilnehmer')
+                    .replace(/{{datetime}}/g, datetime)
+                    .replace(/{{mapsUrl}}/g, mapsUrl);
 
-            alert('Einladung erfolgreich über EmailJS versendet!');
+                await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
+                    to_email: user.email,
+                    subject: subjectTemplate,
+                    message: personalizedMessage,
+                    from_name: currentUserData.name,
+                    reply_to: currentUserData.email
+                });
+            }
+
+            alert('Einladungen erfolgreich und personalisiert versendet!');
         } catch (err) {
-            alert('Fehler beim Versenden der E-Mail: ' + JSON.stringify(err));
+            alert('Fehler beim Versenden der E-Mails: ' + JSON.stringify(err));
         }
     }
 
     window.updateAndResendInvitation = async (invId) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
-        const selectedEmails = Array.from(selectedUserEmails);
+        const selectedUsers = usersList.filter(u => selectedUserEmails.has(u.email));
         
-        // Strenge Prüfung auch beim Aktualisieren
-        if (selectedEmails.length === 0) { 
+        if (selectedUsers.length === 0) { 
             alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
             return; 
         }
 
         const datetime = document.getElementById('datetime-picker').value;
-        const details = document.getElementById('details-input').value;
-        const recipientString = selectedEmails.join(',');
+        const subjectTemplate = document.getElementById('email-subject-input').value;
+        const messageTemplate = document.getElementById('email-message-input').value;
+        const center = map.getCenter();
+        const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+        const recipientEmails = selectedUsers.map(u => u.email);
 
         try {
             await updateDoc(doc(db, "invitations", invId), {
-                recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
+                recipients: recipientEmails, datetime, details: messageTemplate, updatedAt: serverTimestamp()
             });
 
-            await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
-                to_email: recipientString,
-                subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
-                message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
-                from_name: currentUserData.name,
-                reply_to: currentUserData.email
-            });
+            for (const user of selectedUsers) {
+                let personalizedMessage = messageTemplate
+                    .replace(/{{name}}/g, user.name || 'Teilnehmer')
+                    .replace(/{{datetime}}/g, datetime)
+                    .replace(/{{mapsUrl}}/g, mapsUrl);
+
+                await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
+                    to_email: user.email,
+                    subject: subjectTemplate,
+                    message: personalizedMessage,
+                    from_name: currentUserData.name,
+                    reply_to: currentUserData.email
+                });
+            }
 
             resetSendButtonToCreate();
             alert('Einladung erfolgreich aktualisiert und versendet!');
