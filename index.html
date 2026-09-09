@@ -593,7 +593,7 @@
                 Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l-.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Profil
             </button>
         </div>
@@ -616,7 +616,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { 
         getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
-        signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider, signInWithPopup
+        signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider, signInWithRedirect, getRedirectResult
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { 
         getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, serverTimestamp, deleteDoc, updateDoc 
@@ -648,6 +648,24 @@
     let currentChatRoom = "global";
     let activeChatUnsubscribe = null;
     let invitationsCache = {};
+
+    // Prüfen ob Redirect-Ergebnis vorliegt (für Google Login)
+    getRedirectResult(auth).then(async (result) => {
+        if (result && result.user) {
+            const userDoc = await getDoc(doc(db, "users", result.user.uid));
+            if (!userDoc.exists()) {
+                await setDoc(doc(db, "users", result.user.uid), {
+                    name: result.user.displayName || 'Google-Nutzer',
+                    email: result.user.email,
+                    role: 'user',
+                    tags: []
+                });
+            }
+        }
+    }).catch((error) => {
+        const authMessage = document.getElementById('auth-message');
+        if (authMessage) authMessage.innerText = 'Google-Login Fehler: ' + error.message;
+    });
 
     // Globale Admin-Funktionen
     window.toggleUserTag = async (uid, tagName, add) => {
@@ -898,16 +916,7 @@
     googleLoginBtn.addEventListener('click', async () => {
         const provider = new GoogleAuthProvider();
         try {
-            const result = await signInWithPopup(auth, provider);
-            const userDoc = await getDoc(doc(db, "users", result.user.uid));
-            if (!userDoc.exists()) {
-                await setDoc(doc(db, "users", result.user.uid), {
-                    name: result.user.displayName || 'Google-Nutzer',
-                    email: result.user.email,
-                    role: 'user',
-                    tags: []
-                });
-            }
+            await signInWithRedirect(auth, provider);
         } catch (error) {
             authMessage.innerText = 'Google-Login Fehler: ' + error.message;
         }
@@ -1034,7 +1043,6 @@
             const input = document.getElementById('new-tag-name-input');
             const name = input.value.trim();
             if (!name) return;
-            // Prüfen ob Tag schon existiert
             if (tagsList.some(t => t.name.toLowerCase() === name.toLowerCase())) {
                 alert('Diesen Tag gibt es bereits.');
                 return;
@@ -1230,7 +1238,6 @@
         if (!sidebarList || !auth.currentUser) return;
         sidebarList.innerHTML = '';
 
-        // 1. Öffentlicher Hauptchat
         const globalItem = document.createElement('div');
         globalItem.className = `chat-room-item ${currentChatRoom === 'global' ? 'active' : ''}`;
         globalItem.innerHTML = `
@@ -1245,7 +1252,6 @@
         globalItem.onclick = () => window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
         sidebarList.appendChild(globalItem);
 
-        // 2. Tag-Kanäle (Exklusiv für User mit dem Tag oder Admins)
         tagsList.forEach(tag => {
             const roomId = "tag_" + tag.name;
             const userTags = currentUserData?.tags || [];
@@ -1269,7 +1275,6 @@
             }
         });
 
-        // 3. Direkte Nachrichten (DMs)
         usersList.forEach(u => {
             if (u.email !== auth.currentUser.email) {
                 const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
