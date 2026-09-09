@@ -63,40 +63,85 @@
             font-size: 16px;
         }
 
-        /* CHECKBOX-LISTE FÜR NUTZERAUSWAHL */
-        .user-checkbox-list {
-            max-height: 180px;
+        /* NEUES CHIP-/KARTEN-SYSTEM FÜR NUTZERAUSWAHL */
+        .user-chips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 8px;
+            max-height: 220px;
             overflow-y: auto;
             border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 8px;
-            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f9f9f9;
+            /* Verhindert Textmarkierung beim Gedrückthalten auf Handys */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
-        .user-checkbox-item {
+        .user-chip {
+            background: #ffffff;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
             display: flex;
             align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #eee;
-            cursor: pointer;
+            gap: 8px;
         }
 
-        .user-checkbox-item:last-child {
-            border-bottom: none;
+        .user-chip:active {
+            transform: scale(0.97);
         }
 
-        .user-checkbox-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 12px;
-            cursor: pointer;
+        .user-chip.selected {
+            background: #e8f8f5;
+            border-color: var(--primary);
+            color: var(--primary-dark);
         }
 
-        .user-checkbox-item label {
-            margin-bottom: 0;
-            font-weight: normal;
-            cursor: pointer;
-            width: 100%;
+        .user-chip-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            background: #fff;
+            flex-shrink: 0;
+        }
+
+        .user-chip.selected .user-chip-icon {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .user-chip-info {
+            overflow: hidden;
+        }
+
+        .user-chip-name {
+            font-weight: bold;
+            font-size: 0.85em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-chip-email {
+            font-size: 0.7em;
+            color: #777;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .select-all-box {
@@ -147,7 +192,6 @@
             touch-action: pan-x pan-y;
         }
 
-        /* Optisches Fadenkreuz in der Kartenmitte */
         .map-crosshair {
             position: absolute;
             top: 50%;
@@ -367,13 +411,13 @@
                 <h3>👑 Admin: Einladung senden</h3>
                 
                 <div class="form-group">
-                    <label>Empfänger auswählen:</label>
+                    <label>Empfänger durch Antippen auswählen:</label>
                     <div class="select-all-box">
                         <button type="button" class="btn-secondary small-btn" id="btn-select-all">Alle auswählen</button>
                         <button type="button" class="btn-secondary small-btn" id="btn-deselect-all">Auswahl aufheben</button>
                     </div>
-                    <div class="user-checkbox-list" id="invite-user-checkboxes">
-                        <!-- Checkboxen werden per JS eingefügt -->
+                    <div class="user-chips-grid" id="invite-user-chips">
+                        <!-- Nutzer-Chips werden per JS geladen -->
                     </div>
                 </div>
 
@@ -648,24 +692,33 @@
   // ADMIN VERWALTUNG & LISTEN
   function loadAdminUsers() {
       onSnapshot(collection(db, "users"), (snapshot) => {
-          const checkboxContainer = document.getElementById('invite-user-checkboxes');
+          const chipsContainer = document.getElementById('invite-user-chips');
           const usersList = document.getElementById('admin-users-list');
-          checkboxContainer.innerHTML = '';
+          chipsContainer.innerHTML = '';
           usersList.innerHTML = '';
 
           snapshot.forEach(docSnap => {
               const u = docSnap.data();
               const uid = docSnap.id;
 
-              // Checkbox-Eintrag für Einladungen erstellen
-              const userObj = JSON.stringify({email: u.email, name: u.name});
-              const itemDiv = document.createElement('div');
-              itemDiv.className = 'user-checkbox-item';
-              itemDiv.innerHTML = `
-                  <input type="checkbox" id="user-cb-${uid}" class="invite-user-cb" value='${userObj}'>
-                  <label for="user-cb-${uid}">${u.name || 'Unbekannt'} (${u.email})</label>
+              // Visuelle Kachel/Chip erstellen (Touch-optimiert)
+              const chip = document.createElement('div');
+              chip.className = 'user-chip';
+              chip.dataset.userData = JSON.stringify({email: u.email, name: u.name});
+              chip.innerHTML = `
+                  <div class="user-chip-icon">✓</div>
+                  <div class="user-chip-info">
+                      <div class="user-chip-name">${u.name || 'Unbekannt'}</div>
+                      <div class="user-chip-email">${u.email}</div>
+                  </div>
               `;
-              checkboxContainer.appendChild(itemDiv);
+              
+              // Klick/Tipp-Event zum Auswählen / Abwählen
+              chip.addEventListener('click', () => {
+                  chip.classList.toggle('selected');
+              });
+
+              chipsContainer.appendChild(chip);
 
               // Eintrag in Admin-Nutzerliste erstellen
               const isSelf = auth.currentUser && auth.currentUser.uid === uid;
@@ -690,11 +743,11 @@
 
   // Alle auswählen / Auswahl aufheben Buttons
   document.getElementById('btn-select-all').addEventListener('click', () => {
-      document.querySelectorAll('.invite-user-cb').forEach(cb => cb.checked = true);
+      document.querySelectorAll('.user-chip').forEach(chip => chip.classList.add('selected'));
   });
 
   document.getElementById('btn-deselect-all').addEventListener('click', () => {
-      document.querySelectorAll('.invite-user-cb').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.user-chip').forEach(chip => chip.classList.remove('selected'));
   });
 
   function loadAdminInvitations() {
@@ -738,14 +791,14 @@
 
   // EINLADUNG VORBEREITEN
   document.getElementById('btn-send-invite').addEventListener('click', async () => {
-      const checkedBoxes = Array.from(document.querySelectorAll('.invite-user-cb:checked'));
+      const selectedChips = Array.from(document.querySelectorAll('.user-chip.selected'));
       const inviteDate = document.getElementById('invite-date').value;
       const details = document.getElementById('invite-details').value.trim();
 
-      if (checkedBoxes.length === 0 || !inviteDate) return alert("Bitte mindestens einen Nutzer und ein Datum auswählen!");
+      if (selectedChips.length === 0 || !inviteDate) return alert("Bitte mindestens einen Nutzer und ein Datum auswählen!");
 
       const mapsUrl = `https://www.google.com/maps?q=${selectedLat},${selectedLng}`;
-      const users = checkedBoxes.map(cb => JSON.parse(cb.value));
+      const users = selectedChips.map(chip => JSON.parse(chip.dataset.userData));
       const emails = users.map(u => u.email).join(',');
 
       for (const u of users) {
