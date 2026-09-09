@@ -1168,14 +1168,23 @@
         });
     }
 
-    async function createNewInvitation() {
+async function createNewInvitation() {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const selectedEmails = Array.from(selectedUserEmails);
-        if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
+        
+        // FIX: Strenge Prüfung, ob Empfänger ausgewählt wurden
+        if (selectedEmails.length === 0) { 
+            alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
+            return; 
+        }
+
         const datetime = document.getElementById('datetime-picker').value;
         const details = document.getElementById('details-input').value;
         const center = map.getCenter();
         const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+
+        // Empfänger-String korrekt generieren (kommagetrennt)
+        const recipientString = selectedEmails.join(',');
 
         try {
             await addDoc(collection(db, "invitations"), {
@@ -1183,7 +1192,7 @@
             });
 
             await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
-                to_email: selectedEmails.join(','),
+                to_email: recipientString, // Hier sicherstellen, dass ein gültiger String übergeben wird
                 subject: "Einladung zur Hütte Dangstetten",
                 message: `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}`,
                 from_name: currentUserData.name
@@ -1194,6 +1203,39 @@
             alert('Fehler beim Versenden der E-Mail: ' + JSON.stringify(err));
         }
     }
+
+    window.updateAndResendInvitation = async (invId) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
+        const selectedEmails = Array.from(selectedUserEmails);
+        
+        // FIX: Strenge Prüfung auch beim Aktualisieren
+        if (selectedEmails.length === 0) { 
+            alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
+            return; 
+        }
+
+        const datetime = document.getElementById('datetime-picker').value;
+        const details = document.getElementById('details-input').value;
+        const recipientString = selectedEmails.join(',');
+
+        try {
+            await updateDoc(doc(db, "invitations", invId), {
+                recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
+            });
+
+            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
+                to_email: recipientString, // Sicherstellen, dass das Feld befüllt ist
+                subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
+                message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
+                from_name: currentUserData.name
+            });
+
+            resetSendButtonToCreate();
+            alert('Einladung erfolgreich aktualisiert und via GMX versendet!');
+        } catch (err) {
+            alert('Fehler beim Senden: ' + JSON.stringify(err));
+        }
+    };
 
     const sendInviteBtn = document.getElementById('send-invite-btn');
     if (sendInviteBtn) {
