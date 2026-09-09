@@ -804,32 +804,6 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    window.updateAndResendInvitation = async (invId) => {
-        if (!currentUserData || currentUserData.role !== 'admin') return;
-        const selectedEmails = Array.from(selectedUserEmails);
-        if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
-        const datetime = document.getElementById('datetime-picker').value;
-        const details = document.getElementById('details-input').value;
-
-        try {
-            await updateDoc(doc(db, "invitations", invId), {
-                recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
-            });
-
-            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
-                to_email: selectedEmails.join(','),
-                subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
-                message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
-                from_name: currentUserData.name
-            });
-
-            resetSendButtonToCreate();
-            alert('Einladung erfolgreich aktualisiert und via GMX versendet!');
-        } catch (err) {
-            alert('Fehler beim Senden: ' + JSON.stringify(err));
-        }
-    };
-
     function resetSendButtonToCreate() {
         const sendBtn = document.getElementById('send-invite-btn');
         sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung über GMX senden`;
@@ -1168,11 +1142,11 @@
         });
     }
 
-async function createNewInvitation() {
+    async function createNewInvitation() {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const selectedEmails = Array.from(selectedUserEmails);
         
-        // FIX: Strenge Prüfung, ob Empfänger ausgewählt wurden
+        // Strenge Prüfung, ob Empfänger ausgewählt wurden
         if (selectedEmails.length === 0) { 
             alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
             return; 
@@ -1191,14 +1165,15 @@ async function createNewInvitation() {
                 createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
             });
 
-            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
-                to_email: recipientString, // Hier sicherstellen, dass ein gültiger String übergeben wird
+            await emailjs.send("service_t7tnqgt", "template_rl8z3ur", {
+                to_email: recipientString,
                 subject: "Einladung zur Hütte Dangstetten",
                 message: `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}`,
-                from_name: currentUserData.name
+                from_name: currentUserData.name,
+                reply_to: currentUserData.email
             });
 
-            alert('Einladung erfolgreich über GMX versendet!');
+            alert('Einladung erfolgreich über EmailJS versendet!');
         } catch (err) {
             alert('Fehler beim Versenden der E-Mail: ' + JSON.stringify(err));
         }
@@ -1208,7 +1183,7 @@ async function createNewInvitation() {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const selectedEmails = Array.from(selectedUserEmails);
         
-        // FIX: Strenge Prüfung auch beim Aktualisieren
+        // Strenge Prüfung auch beim Aktualisieren
         if (selectedEmails.length === 0) { 
             alert('Bitte wähle mindestens eine Person als Empfänger aus.'); 
             return; 
@@ -1223,15 +1198,16 @@ async function createNewInvitation() {
                 recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
             });
 
-            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
-                to_email: recipientString, // Sicherstellen, dass das Feld befüllt ist
+            await emailjs.send("service_t7tnqgt", "template_rl8z3ur", {
+                to_email: recipientString,
                 subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
                 message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
-                from_name: currentUserData.name
+                from_name: currentUserData.name,
+                reply_to: currentUserData.email
             });
 
             resetSendButtonToCreate();
-            alert('Einladung erfolgreich aktualisiert und via GMX versendet!');
+            alert('Einladung erfolgreich aktualisiert und versendet!');
         } catch (err) {
             alert('Fehler beim Senden: ' + JSON.stringify(err));
         }
