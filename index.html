@@ -685,7 +685,6 @@
         }
         try {
             await updateDoc(doc(db, "users", uid), { tags });
-            // Direkt im Einstellungs-Panel aktualisieren falls offen
             if (currentChatRoom === "tag_" + tagName) {
                 setupTagSettingsPanel(tagName);
             }
@@ -817,7 +816,7 @@
                 recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
             });
 
-            await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
                 to_email: selectedEmails.join(','),
                 subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
                 message: `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}`,
@@ -1183,7 +1182,7 @@
                 createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
             });
 
-            await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+            await emailjs.send("-service_t7tnqgt", "template_rl8z3ur", {
                 to_email: selectedEmails.join(','),
                 subject: "Einladung zur Hütte Dangstetten",
                 message: `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}`,
@@ -1317,10 +1316,8 @@
             document.getElementById('chat-main').style.display = 'flex';
         }
 
-        // Sidebar-Active-Klasse aktualisieren, damit sofort sichtbar ist, wo man sich befindet
         document.querySelectorAll('.chat-room-item').forEach(el => el.classList.remove('active'));
         
-        // Finde das angeklickte Element in der Sidebar und markiere es
         document.querySelectorAll('.chat-room-item').forEach(el => {
             if (el.onclick && el.onclick.toString().includes(roomId)) {
                 el.classList.add('active');
