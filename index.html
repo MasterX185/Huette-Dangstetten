@@ -56,6 +56,77 @@
                 border-radius: var(--radius);
                 overflow: hidden;
                 border: 1px solid var(--border);
+            **EmailJS Template Konfiguration**
+Lege im EmailJS-Dashboard unter der Template-ID `template_rl8z3ur` und der Service-ID `service_oxlrwkl` ein neues Template an und trage die folgenden Variablen exakt so in die entsprechenden Eingabefelder ein[cite: 1]:
+
+*   **To Email:** `{{to_email}}`[cite: 1]
+*   **From Name:** `{{from_name}}`[cite: 1]
+*   **Subject:** `{{subject}}`[cite: 1]
+*   **Reply To:** `{{reply_to}}`[cite: 1]
+*   **Message / Content:** `{{message}}`[cite: 1]
+*   **Public Key (für die Account-Verbindung):** `CFQLo5C6SDyav2WuP`[cite: 1]
+
+**Vollständige index.html (Referenz: index_2.html)**[cite: 1]
+
+```html
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hütte Dangstetten - Portal & Chat</title>
+    
+    <!-- Flatpickr & Leaflet CSS -->
+    <link rel="stylesheet" href="[https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css](https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css)">
+    <link rel="stylesheet" href="[https://unpkg.com/leaflet@1.9.4/dist/leaflet.css](https://unpkg.com/leaflet@1.9.4/dist/leaflet.css)" />
+
+    <style>
+        :root {
+            --primary: #0f766e;
+            --primary-dark: #115e59;
+            --primary-light: #ccfbf1;
+            --bg-body: #f8fafc;
+            --surface: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --danger: #ef4444;
+            --danger-bg: #fee2e2;
+            --radius: 12px;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: var(--surface);
+            width: 100%;
+            max-width: 1100px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+        }
+
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            .container {
+                height: 92vh;
+                border-radius: var(--radius);
+                overflow: hidden;
+                border: 1px solid var(--border);
             }
         }
 
@@ -625,23 +696,23 @@
 </div>
 
 <!-- Flatpickr & Leaflet JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="[https://cdn.jsdelivr.net/npm/flatpickr](https://cdn.jsdelivr.net/npm/flatpickr)"></script>
+<script src="[https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js](https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js)"></script>
+<script src="[https://unpkg.com/leaflet@1.9.4/dist/leaflet.js](https://unpkg.com/leaflet@1.9.4/dist/leaflet.js)"></script>
 
 <!-- EmailJS SDK -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="text/javascript" src="[https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js](https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js)"></script>
 
 <!-- Firebase SDKs -->
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { initializeApp } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js)";
     import { 
         getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, 
         signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider, signInWithRedirect, getRedirectResult
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js)";
     import { 
         getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, serverTimestamp, deleteDoc, updateDoc 
-    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    } from "[https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js](https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js)";
 
     emailjs.init("CFQLo5C6SDyav2WuP");
 
@@ -1227,7 +1298,7 @@
         const subjectTemplate = document.getElementById('email-subject-input').value;
         const messageTemplate = document.getElementById('email-message-input').value;
         const center = map.getCenter();
-        const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+        const mapsUrl = `[https://www.google.com/maps?q=$](https://www.google.com/maps?q=$){center.lat},${center.lng}`;
 
         const recipientEmails = selectedUsers.map(u => u.email);
 
@@ -1275,7 +1346,7 @@
         const subjectTemplate = document.getElementById('email-subject-input').value;
         const messageTemplate = document.getElementById('email-message-input').value;
         const center = map.getCenter();
-        const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+        const mapsUrl = `[https://www.google.com/maps?q=$](https://www.google.com/maps?q=$){center.lat},${center.lng}`;
         const recipientEmails = selectedUsers.map(u => u.email);
 
         try {
