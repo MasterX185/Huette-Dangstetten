@@ -222,6 +222,20 @@
         .user-chip-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .user-chip-email { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+        /* TAG BADGES */
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            gap: 4px;
+        }
+        .tag-badge-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+
         /* CHAT LAYOUT */
         .chat-layout {
             display: flex;
@@ -478,19 +492,8 @@
                     <!-- Sidebar: Vertikale Chat-Liste -->
                     <div class="chat-sidebar" id="chat-sidebar">
                         <div class="chat-sidebar-header">
-                            <span>Chats & Gruppen</span>
-                            <span id="admin-group-trigger-icon" class="hidden" style="cursor:pointer;" title="Neue Gruppe erstellen">
-                                <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-                            </span>
+                            <span>Chats & Kanäle</span>
                         </div>
-                        
-                        <!-- Admin Gruppen-Erstellung -->
-                        <div id="admin-group-creator" class="hidden" style="padding: 12px; background: #f8fafc; border-bottom: 1px solid var(--border);">
-                            <strong style="font-size:0.85rem; color:var(--primary-dark);">Neue Gruppe erstellen</strong>
-                            <input type="text" id="group-name-input" placeholder="Gruppenname..." style="margin-top:6px; margin-bottom:8px; font-size:0.9rem;">
-                            <button id="create-group-btn" class="small-btn">Gruppe anlegen</button>
-                        </div>
-
                         <div class="chat-rooms-list" id="chat-rooms-list"></div>
                     </div>
 
@@ -524,7 +527,7 @@
                         <!-- Gruppen Einstellungen Panel -->
                         <div id="chat-settings-panel" class="settings-panel hidden">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <strong style="font-size:0.9rem; color:var(--primary-dark);">Gruppen-Einstellungen</strong>
+                                <strong style="font-size:0.9rem; color:var(--primary-dark);">Tag-Kanal Einstellungen</strong>
                                 <button class="small-btn btn-secondary" onclick="document.getElementById('chat-settings-panel').classList.add('hidden')" style="padding:2px 8px;">✕</button>
                             </div>
                             <div id="group-settings-content"></div>
@@ -546,7 +549,8 @@
             <div id="tab-profile-content" class="tab-content hidden">
                 <div class="card">
                     <h3 style="margin:0 0 6px 0; color:var(--primary-dark);">Profil (<span id="user-display-name"></span>)</h3>
-                    <p style="margin:0 0 12px 0; font-size:0.9rem;">Rolle: <span id="user-role-badge" class="badge-user">User</span></p>
+                    <p style="margin:0 0 8px 0; font-size:0.9rem;">Rolle: <span id="user-role-badge" class="badge-user">User</span></p>
+                    <div style="font-size:0.9rem; margin-bottom:12px;">Deine Tags: <div id="user-profile-tags" class="tag-badge-container"><em>Keine</em></div></div>
 
                     <h4 style="margin:0 0 8px 0; font-size:0.9rem;">E-Mail-Adresse ändern</h4>
                     <div class="form-group" style="margin-bottom:8px;">
@@ -556,12 +560,21 @@
                     <div id="email-change-msg" class="message"></div>
                 </div>
 
-                <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzerverwaltung</h3>
-                    <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
+                <!-- ADMIN: TAGS VERWALTEN & ERSTELLEN -->
+                <div id="admin-tags-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Tags erstellen</h3>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <input type="text" id="new-tag-name-input" placeholder="Tag-Name (z.B. IT, Admin, Support)">
+                    </div>
+                    <button id="create-tag-btn" class="small-btn">Tag erstellen & Chat-Kanal öffnen</button>
 
-                    <h3 style="margin: 20px 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Gruppen verwalten</h3>
-                    <div id="admin-group-management-list"><em>Lade Gruppen...</em></div>
+                    <h4 style="margin:16px 0 8px 0; font-size:0.9rem;">Vorhandene Tags</h4>
+                    <div id="admin-tags-list"><em>Lade Tags...</em></div>
+                </div>
+
+                <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzer & Tag-Zuweisung</h3>
+                    <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
                 </div>
 
                 <button id="logout-btn" class="logout-btn">Abmelden</button>
@@ -590,9 +603,7 @@
 
 <!-- Modal Container für Einladungs-Details -->
 <div id="invitation-modal" class="modal-overlay hidden">
-    <div class="modal-content" id="modal-content-box">
-        <!-- Inhalt wird dynamisch befüllt -->
-    </div>
+    <div class="modal-content" id="modal-content-box"></div>
 </div>
 
 <!-- Flatpickr & Leaflet JS -->
@@ -630,7 +641,7 @@
     let isRegistering = false;
     let currentUserData = null;
     let usersList = [];
-    let chatGroupsList = [];
+    let tagsList = [];
     let selectedUserEmails = new Set();
     let savedLocations = [];
     let map = null;
@@ -638,34 +649,34 @@
     let activeChatUnsubscribe = null;
     let invitationsCache = {};
 
-    // Globale Funktionen für Admin-Aktionen
-    window.toggleGroupMember = async (groupId, userEmail, add) => {
+    // Globale Admin-Funktionen
+    window.toggleUserTag = async (uid, tagName, add) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
-        const group = chatGroupsList.find(g => g.id === groupId);
-        if (!group) return;
-        let members = group.members || [];
+        const userObj = usersList.find(u => u.id === uid);
+        if (!userObj) return;
+        let tags = userObj.tags || [];
         if (add) {
-            if (!members.includes(userEmail)) members.push(userEmail);
+            if (!tags.includes(tagName)) tags.push(tagName);
         } else {
-            members = members.filter(e => e !== userEmail);
+            tags = tags.filter(t => t !== tagName);
         }
         try {
-            await updateDoc(doc(db, "chat_groups", groupId), { members });
+            await updateDoc(doc(db, "users", uid), { tags });
         } catch (err) {
-            alert('Fehler beim Aktualisieren: ' + err.message);
+            alert('Fehler beim Zuweisen des Tags: ' + err.message);
         }
     };
 
-    window.deleteGroup = async (groupId) => {
+    window.deleteTag = async (tagId, tagName) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
-        if (confirm("Möchtest du diese Gruppe wirklich löschen?")) {
+        if (confirm(`Tag "${tagName}" wirklich löschen?`)) {
             try {
-                await deleteDoc(doc(db, "chat_groups", groupId));
-                if (currentChatRoom === "group_" + groupId) {
+                await deleteDoc(doc(db, "tags", tagId));
+                if (currentChatRoom === "tag_" + tagName) {
                     window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
                 }
             } catch (err) {
-                alert('Fehler beim Löschen: ' + err.message);
+                alert('Fehler beim Löschen des Tags: ' + err.message);
             }
         }
     };
@@ -676,7 +687,7 @@
             try {
                 await deleteDoc(doc(db, "locations", locationId));
             } catch (err) {
-                alert('Fehler beim Löschen des Ortes: ' + err.message);
+                alert('Fehler: ' + err.message);
             }
         }
     };
@@ -686,9 +697,9 @@
         if (confirm("Möchtest du diesen Einladungs-Eintrag wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "invitations", invitationId));
-                closeModal();
+                window.closeModal();
             } catch (err) {
-                alert('Fehler beim Löschen der Einladung: ' + err.message);
+                alert('Fehler: ' + err.message);
             }
         }
     };
@@ -750,7 +761,6 @@
         if (!inv) return;
         window.closeModal();
 
-        // Formularfelder vorausfüllen
         document.getElementById('datetime-picker')._flatpickr.setDate(inv.datetime, true);
         document.getElementById('details-input').value = inv.details || '';
         
@@ -760,13 +770,11 @@
         }
         renderUserChips();
 
-        // Button umfunktionieren für Update
         const sendBtn = document.getElementById('send-invite-btn');
         sendBtn.innerText = "Änderungen speichern & aktualisiert per Mail senden";
         sendBtn.onclick = () => window.updateAndResendInvitation(invId);
 
-        // Zum Tab wechseln
-        navInviteBtn.click();
+        document.getElementById('nav-invite-btn').click();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -783,17 +791,16 @@
             });
 
             const mailSubject = "AKTUALISIERT: Einladung zur Hütte Dangstetten";
-            const mailBody = `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nAktualisierte Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+            const mailBody = `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n\nViele Grüße\n${currentUserData.name}`;
 
             window.location.href = `mailto:${selectedEmails.join(',')}` +
                 `?subject=${encodeURIComponent(mailSubject)}` +
                 `&body=${encodeURIComponent(mailBody)}`;
 
-            // Reset Send-Button
             resetSendButtonToCreate();
             alert('Einladung erfolgreich aktualisiert und Mail-Client geöffnet!');
         } catch (err) {
-            alert('Fehler beim Aktualisieren: ' + err.message);
+            alert('Fehler: ' + err.message);
         }
     };
 
@@ -842,7 +849,10 @@
             document.getElementById('chat-main').style.display = 'none';
         }
     });
-    navProfileBtn.addEventListener('click', () => switchTab(navProfileBtn, tabProfileContent));
+    navProfileBtn.addEventListener('click', () => {
+        switchTab(navProfileBtn, tabProfileContent);
+        renderProfileTags();
+    });
 
     document.getElementById('mobile-back-btn').addEventListener('click', () => {
         if (window.innerWidth < 768) {
@@ -876,7 +886,7 @@
             if (isRegistering) {
                 if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
-                await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user' });
+                await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
             }
@@ -894,7 +904,8 @@
                 await setDoc(doc(db, "users", result.user.uid), {
                     name: result.user.displayName || 'Google-Nutzer',
                     email: result.user.email,
-                    role: 'user'
+                    role: 'user',
+                    tags: []
                 });
             }
         } catch (error) {
@@ -919,11 +930,11 @@
 
                 if (currentUserData.role === 'admin') {
                     document.getElementById('admin-section').classList.remove('hidden');
-                    document.getElementById('admin-group-trigger-icon').classList.remove('hidden');
+                    document.getElementById('admin-tags-section').classList.remove('hidden');
                     document.querySelectorAll('.admin-only-element').forEach(el => el.classList.remove('hidden'));
                 } else {
                     document.getElementById('admin-section').classList.add('hidden');
-                    document.getElementById('admin-group-trigger-icon').classList.add('hidden');
+                    document.getElementById('admin-tags-section').classList.add('hidden');
                     document.querySelectorAll('.admin-only-element').forEach(el => el.classList.add('hidden'));
                 }
             }
@@ -957,9 +968,9 @@
             initFlatpickr();
         }
         loadUsers();
+        loadTags();
         loadLocations();
         loadInvitations();
-        initChatRooms();
     }
 
     function initMap() {
@@ -975,12 +986,81 @@
     function loadUsers() {
         onSnapshot(collection(db, "users"), (snapshot) => {
             usersList = [];
-            snapshot.forEach(docSnap => usersList.push({ id: docSnap.id, ...docSnap.data() }));
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                if (auth.currentUser && docSnap.id === auth.currentUser.uid) {
+                    currentUserData = data;
+                }
+                usersList.push({ id: docSnap.id, ...data });
+            });
             if (currentUserData && currentUserData.role === 'admin') {
                 renderUserChips();
                 renderAdminUsers();
             }
+            renderProfileTags();
             updateChatRoomsList();
+        });
+    }
+
+    function loadTags() {
+        onSnapshot(collection(db, "tags"), (snapshot) => {
+            tagsList = [];
+            snapshot.forEach(docSnap => tagsList.push({ id: docSnap.id, ...docSnap.data() }));
+            if (currentUserData && currentUserData.role === 'admin') {
+                renderAdminTags();
+                renderAdminUsers();
+            }
+            updateChatRoomsList();
+        });
+    }
+
+    function renderProfileTags() {
+        const container = document.getElementById('user-profile-tags');
+        if (!container || !currentUserData) return;
+        const tags = currentUserData.tags || [];
+        container.innerHTML = tags.length === 0 ? '<em>Keine</em>' : '';
+        tags.forEach(t => {
+            const badge = document.createElement('span');
+            badge.className = 'tag-badge';
+            badge.innerText = t;
+            container.appendChild(badge);
+        });
+    }
+
+    const createTagBtn = document.getElementById('create-tag-btn');
+    if (createTagBtn) {
+        createTagBtn.onclick = async () => {
+            if (!currentUserData || currentUserData.role !== 'admin') return;
+            const input = document.getElementById('new-tag-name-input');
+            const name = input.value.trim();
+            if (!name) return;
+            // Prüfen ob Tag schon existiert
+            if (tagsList.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+                alert('Diesen Tag gibt es bereits.');
+                return;
+            }
+            await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
+            input.value = '';
+        };
+    }
+
+    function renderAdminTags() {
+        const container = document.getElementById('admin-tags-list');
+        if (!container) return;
+        container.innerHTML = tagsList.length === 0 ? '<em>Keine Tags erstellt.</em>' : '';
+        tagsList.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.style.padding = '8px 12px';
+            div.style.marginBottom = '6px';
+            div.style.flexDirection = 'row';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.innerHTML = `
+                <span class="tag-badge">${t.name}</span>
+                <button class="small-btn delete-btn" onclick="window.deleteTag('${t.id}', '${t.name}')">Löschen</button>
+            `;
+            container.appendChild(div);
         });
     }
 
@@ -1087,7 +1167,7 @@
         });
 
         const mailSubject = "Einladung zur Hütte Dangstetten";
-        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nDetails:\n- Datum & Uhrzeit: ${datetime}\n- Hinweise: ${details || 'Keine'}\n- Treffpunkt: ${mapsUrl}\n\nViele Grüße\n${currentUserData.name}`;
 
         window.location.href = `mailto:${selectedEmails.join(',')}` +
             `?subject=${encodeURIComponent(mailSubject)}` +
@@ -1142,41 +1222,15 @@
         });
     }
 
-    // CHAT SYSTEM
+    // CHAT SYSTEM MIT TAG- KANÄLEN & DMs
     function getDMId(email1, email2) { return [email1, email2].sort().join("_"); }
-
-    function initChatRooms() {
-        window.switchChatRoom("global", "Hütten-Hauptchat", "Öffentlicher Raum für alle", '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
-    }
-
-    const adminGroupTriggerIcon = document.getElementById('admin-group-trigger-icon');
-    if(adminGroupTriggerIcon) {
-        adminGroupTriggerIcon.onclick = () => {
-            if (currentUserData && currentUserData.role === 'admin') {
-                document.getElementById('admin-group-creator').classList.toggle('hidden');
-            }
-        };
-    }
-
-    const createGroupBtn = document.getElementById('create-group-btn');
-    if (createGroupBtn) {
-        createGroupBtn.onclick = async () => {
-            if (!currentUserData || currentUserData.role !== 'admin') return;
-            const nameInput = document.getElementById('group-name-input');
-            const name = nameInput.value.trim();
-            if (!name) return;
-            await addDoc(collection(db, "chat_groups"), {
-                name, createdBy: auth.currentUser.email, members: [auth.currentUser.email], createdAt: serverTimestamp()
-            });
-            nameInput.value = '';
-            document.getElementById('admin-group-creator').classList.add('hidden');
-        };
-    }
 
     function updateChatRoomsList() {
         const sidebarList = document.getElementById('chat-rooms-list');
+        if (!sidebarList || !auth.currentUser) return;
         sidebarList.innerHTML = '';
 
+        // 1. Öffentlicher Hauptchat
         const globalItem = document.createElement('div');
         globalItem.className = `chat-room-item ${currentChatRoom === 'global' ? 'active' : ''}`;
         globalItem.innerHTML = `
@@ -1191,8 +1245,33 @@
         globalItem.onclick = () => window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
         sidebarList.appendChild(globalItem);
 
+        // 2. Tag-Kanäle (Exklusiv für User mit dem Tag oder Admins)
+        tagsList.forEach(tag => {
+            const roomId = "tag_" + tag.name;
+            const userTags = currentUserData?.tags || [];
+            const hasThisTag = userTags.includes(tag.name);
+            const isAdmin = currentUserData?.role === 'admin';
+
+            if (hasThisTag || isAdmin) {
+                const tagItem = document.createElement('div');
+                tagItem.className = `chat-room-item ${currentChatRoom === roomId ? 'active' : ''}`;
+                tagItem.innerHTML = `
+                    <div class="room-avatar" style="background:var(--primary); color:white;">
+                        <svg class="icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    </div>
+                    <div class="room-meta">
+                        <div class="room-name"># ${tag.name}</div>
+                        <div class="room-sub">Tag-Kanal</div>
+                    </div>
+                `;
+                tagItem.onclick = () => window.switchChatRoom(roomId, `# ${tag.name}`, `Exklusiver Kanal für den Tag ${tag.name}`, '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>');
+                sidebarList.appendChild(tagItem);
+            }
+        });
+
+        // 3. Direkte Nachrichten (DMs)
         usersList.forEach(u => {
-            if (auth.currentUser && u.email !== auth.currentUser.email) {
+            if (u.email !== auth.currentUser.email) {
                 const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
                 const dmItem = document.createElement('div');
                 dmItem.className = `chat-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
@@ -1206,36 +1285,6 @@
                 dmItem.onclick = () => window.switchChatRoom(dmId, u.name, `Privater Chat`, u.name[0].toUpperCase());
                 sidebarList.appendChild(dmItem);
             }
-        });
-
-        onSnapshot(collection(db, "chat_groups"), (snapshot) => {
-            chatGroupsList = [];
-            snapshot.forEach(docSnap => chatGroupsList.push({ id: docSnap.id, ...docSnap.data() }));
-
-            sidebarList.querySelectorAll('.group-room-item').forEach(el => el.remove());
-
-            chatGroupsList.forEach(group => {
-                const roomId = "group_" + group.id;
-                const isMember = group.members && group.members.includes(auth.currentUser.email);
-                const isAdmin = currentUserData && currentUserData.role === 'admin';
-
-                if (isMember || isAdmin) {
-                    const groupItem = document.createElement('div');
-                    groupItem.className = `chat-room-item group-room-item ${currentChatRoom === roomId ? 'active' : ''}`;
-                    groupItem.innerHTML = `
-                        <div class="room-avatar" style="background:var(--primary); color:white;">
-                            <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                        </div>
-                        <div class="room-meta">
-                            <div class="room-name">${group.name}</div>
-                            <div class="room-sub">Gruppe (${group.members ? group.members.length : 0} Mitglieder)</div>
-                        </div>
-                    `;
-                    groupItem.onclick = () => window.switchChatRoom(roomId, group.name, `Gruppenchat`, '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>');
-                    sidebarList.appendChild(groupItem);
-                }
-            });
-            renderAdminGroups();
         });
     }
 
@@ -1256,12 +1305,11 @@
         const settingsPanel = document.getElementById('chat-settings-panel');
         settingsPanel.classList.add('hidden');
 
-        if (roomId.startsWith('group_')) {
-            const groupId = roomId.replace('group_', '');
-            const group = chatGroupsList.find(g => g.id === groupId);
-            if (currentUserData && currentUserData.role === 'admin' && group) {
+        if (roomId.startsWith('tag_')) {
+            const tagName = roomId.replace('tag_', '');
+            if (currentUserData && currentUserData.role === 'admin') {
                 settingsBtn.classList.remove('hidden');
-                setupGroupSettingsPanel(group);
+                setupTagSettingsPanel(tagName);
             } else {
                 settingsBtn.classList.add('hidden');
             }
@@ -1274,7 +1322,7 @@
         const q = query(collection(db, `chats/${roomId}/messages`), orderBy("createdAt", "asc"));
         activeChatUnsubscribe = onSnapshot(q, (snapshot) => {
             const container = document.getElementById('chat-messages');
-            container.innerHTML = snapshot.empty ? '<em>Noch keine Nachrichten.</em>' : '';
+            container.innerHTML = snapshot.empty ? '<em>Noch keine Nachrichten in diesem Kanal.</em>' : '';
             snapshot.forEach(docSnap => {
                 const msg = docSnap.data();
                 const isMe = auth.currentUser && auth.currentUser.email === msg.senderEmail;
@@ -1296,18 +1344,17 @@
         document.getElementById('chat-settings-panel').classList.toggle('hidden');
     };
 
-    function setupGroupSettingsPanel(group) {
+    function setupTagSettingsPanel(tagName) {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const content = document.getElementById('group-settings-content');
-        let membersHtml = '<div style="font-size:0.85rem; margin-bottom:8px;"><strong>Mitglieder zuweisen:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">';
+        let membersHtml = `<div style="font-size:0.85rem; margin-bottom:8px;"><strong>Wer hat den Tag "${tagName}":</strong><div style="max-height:140px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">`;
         usersList.forEach(u => {
-            const isChecked = group.members && group.members.includes(u.email) ? 'checked' : '';
+            const hasTag = u.tags && u.tags.includes(tagName);
             membersHtml += `<label style="display:block; margin-bottom:4px; font-weight:normal; font-size:0.85rem;">
-                <input type="checkbox" ${isChecked} onchange="window.toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name}
+                <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${tagName}', this.checked)"> ${u.name} (${u.email})
             </label>`;
         });
         membersHtml += '</div></div>';
-        membersHtml += `<button class="small-btn delete-btn" onclick="window.deleteGroup('${group.id}')">Gruppe löschen</button>`;
         content.innerHTML = membersHtml;
     }
 
@@ -1330,44 +1377,26 @@
         if (!container) return;
         container.innerHTML = '';
         usersList.forEach(u => {
+            let tagsCheckboxes = '<div style="margin: 6px 0; font-size:0.8rem;"><strong>Tags zuweisen:</strong><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
+            tagsList.forEach(t => {
+                const hasTag = u.tags && u.tags.includes(t.name);
+                tagsCheckboxes += `<label style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+                    <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${t.name}', this.checked)"> ${t.name}
+                </label>`;
+            });
+            tagsCheckboxes += '</div></div>';
+
             const div = document.createElement('div');
             div.className = 'card';
             div.style.padding = '10px';
             div.style.marginBottom = '8px';
             div.innerHTML = `
                 <div style="font-size:0.85rem;"><strong>${u.name}</strong> (${u.email})<br>Rolle: ${u.role}</div>
+                ${tagsCheckboxes}
                 <div style="margin-top:6px; display:flex; gap:6px;">
                     <button class="small-btn btn-secondary" onclick="window.toggleUserRole('${u.id}', '${u.role}')">Rolle ändern</button>
                     <button class="small-btn delete-btn" onclick="window.deleteUserDoc('${u.id}')">Löschen</button>
                 </div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-    function renderAdminGroups() {
-        if (!currentUserData || currentUserData.role !== 'admin') return;
-        const container = document.getElementById('admin-group-management-list');
-        if (!container) return;
-        container.innerHTML = chatGroupsList.length === 0 ? '<em>Keine Gruppen.</em>' : '';
-        chatGroupsList.forEach(group => {
-            const div = document.createElement('div');
-            div.className = 'card';
-            div.style.padding = '10px';
-            div.style.marginBottom = '8px';
-            let membersHtml = '<div style="margin: 6px 0; font-size:0.85rem;"><strong>Mitglieder:</strong><div style="max-height:100px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">';
-            usersList.forEach(u => {
-                const isChecked = group.members && group.members.includes(u.email) ? 'checked' : '';
-                membersHtml += `<label style="display:block; margin-bottom:3px; font-weight:normal; font-size:0.85rem;">
-                    <input type="checkbox" ${isChecked} onchange="window.toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name}
-                </label>`;
-            });
-            membersHtml += '</div></div>';
-
-            div.innerHTML = `
-                <div style="font-size:0.9rem;"><strong>Gruppe: ${group.name}</strong></div>
-                ${membersHtml}
-                <button class="small-btn delete-btn" onclick="window.deleteGroup('${group.id}')">Gruppe löschen</button>
             `;
             container.appendChild(div);
         });
