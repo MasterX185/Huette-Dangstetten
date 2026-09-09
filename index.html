@@ -63,7 +63,7 @@
             font-size: 16px;
         }
 
-        /* NEUES CHIP-/KARTEN-SYSTEM FÜR NUTZERAUSWAHL */
+        /* CHIP-/KARTEN-SYSTEM FÜR NUTZERAUSWAHL */
         .user-chips-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -74,7 +74,6 @@
             border-radius: 8px;
             padding: 10px;
             background: #f9f9f9;
-            /* Verhindert Textmarkierung beim Gedrückthalten auf Handys */
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -176,7 +175,7 @@
         .badge-user { background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; }
         .admin-section-box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 15px; }
 
-        /* MOBIL-OPTIMIERTER KARTEN-CONTAINER MIT FADENKREUZ */
+        /* KARTEN-CONTAINER MIT FADENKREUZ */
         .map-wrapper {
             position: relative;
             width: 100%;
@@ -382,7 +381,7 @@
 
     <!-- DASHBOARD SECTION -->
     <div id="dashboard-section" class="hidden">
-        <h2>Hallo, <span id="user-display-name"></span>! 👋</h2>
+        <h2>Hallo, <span id="user-display-name"></span>!</h2>
         <p style="font-size: 0.85em; color: #666;">Angemeldet als: <span id="user-email"></span></p>
 
         <!-- CHAT SECTION -->
@@ -402,13 +401,13 @@
         </div>
 
         <!-- EINLADUNGEN BEREICH -->
-        <h3 style="margin-top: 30px;">📅 Deine Einladungen</h3>
+        <h3 style="margin-top: 30px;">Deine Einladungen</h3>
         <div id="invitation-list">Lädt Einladungen...</div>
 
         <!-- BEREICH NUR FÜR ADMIN -->
         <div id="admin-view" class="hidden">
             <div class="admin-section-box">
-                <h3>👑 Admin: Einladung senden</h3>
+                <h3>Admin: Einladung senden</h3>
                 
                 <div class="form-group">
                     <label>Empfänger durch Antippen auswählen:</label>
@@ -416,9 +415,7 @@
                         <button type="button" class="btn-secondary small-btn" id="btn-select-all">Alle auswählen</button>
                         <button type="button" class="btn-secondary small-btn" id="btn-deselect-all">Auswahl aufheben</button>
                     </div>
-                    <div class="user-chips-grid" id="invite-user-chips">
-                        <!-- Nutzer-Chips werden per JS geladen -->
-                    </div>
+                    <div class="user-chips-grid" id="invite-user-chips"></div>
                 </div>
 
                 <div class="form-group">
@@ -426,14 +423,31 @@
                     <input type="text" id="invite-date" placeholder="Datum wählen...">
                 </div>
 
+                <!-- STANDORT NEU / GESPEICHERT -->
                 <div class="form-group">
-                    <label>Treffpunkt festlegen:</label>
+                    <label for="select-saved-location">Gespeicherten Standort wählen:</label>
+                    <select id="select-saved-location">
+                        <option value="">-- Standort auf der Karte manuell wählen --</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Treffpunkt auf der Karte festlegen:</label>
                     <div class="map-wrapper">
                         <div id="map"></div>
                         <div class="map-crosshair"></div>
                     </div>
-                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">📍 Standort unter dem Fadenkreuz wählen</button>
+                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">📍 Position unter dem Fadenkreuz festlegen</button>
                     <small id="location-status" style="display:block; margin-top: 5px; color: #27ae60; font-weight: bold;"></small>
+                </div>
+
+                <!-- STANDORT NEU SPEICHERN -->
+                <div class="form-group" style="background: #eef7f6; padding: 10px; border-radius: 6px;">
+                    <label for="location-name">Aktuelle Kartenposition als Vorlage speichern:</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="location-name" placeholder="z.B. Hütte Dangstetten, Grillplatz..." style="margin-bottom:0;">
+                        <button type="button" id="btn-save-location-template" class="small-btn" style="width: auto; white-space: nowrap;">Speichern</button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -443,6 +457,11 @@
 
                 <button id="btn-send-invite">Einladung speichern & Mail-Programm öffnen</button>
                 <p id="admin-msg" class="message"></p>
+            </div>
+
+            <div class="admin-section-box">
+                <h3>Gespeicherte Orte verwalten</h3>
+                <div id="admin-saved-locations-list">Lädt...</div>
             </div>
 
             <div class="admin-section-box">
@@ -605,6 +624,7 @@
                   document.getElementById('admin-view').classList.remove('hidden');
                   loadAdminUsers();
                   loadAdminInvitations();
+                  loadSavedLocations();
                   initMap();
               } else {
                   document.getElementById('admin-view').classList.add('hidden');
@@ -689,6 +709,81 @@
       });
   }
 
+  // GESPEICHERTE ORTE / STANDORTE VERWALTEN
+  function loadSavedLocations() {
+      onSnapshot(collection(db, "locations"), (snapshot) => {
+          const selectEl = document.getElementById('select-saved-location');
+          const adminLocList = document.getElementById('admin-saved-locations-list');
+          
+          selectEl.innerHTML = '<option value="">-- Standort auf der Karte manuell wählen --</option>';
+          adminLocList.innerHTML = snapshot.empty ? '<p>Keine gespeicherten Orte vorhanden.</p>' : '';
+
+          snapshot.forEach(docSnap => {
+              const loc = docSnap.data();
+              const id = docSnap.id;
+
+              // Ins Dropdown einfügen
+              const opt = document.createElement('option');
+              opt.value = JSON.stringify({lat: loc.lat, lng: loc.lng});
+              opt.textContent = loc.name;
+              selectEl.appendChild(opt);
+
+              // In die Liste für Admins einfügen
+              const card = document.createElement('div');
+              card.className = 'card';
+              card.innerHTML = `
+                  <div>
+                      <strong>${loc.name}</strong><br>
+                      <small>Lat: ${loc.lat.toFixed(4)}, Lng: ${loc.lng.toFixed(4)}</small>
+                  </div>
+                  <button class="small-btn delete-btn" onclick="deleteLocation('${id}')">Löschen</button>
+              `;
+              adminLocList.appendChild(card);
+          });
+      });
+  }
+
+  // Standort im Dropdown auswählen
+  document.getElementById('select-saved-location').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      const pos = JSON.parse(e.target.value);
+      selectedLat = pos.lat;
+      selectedLng = pos.lng;
+
+      if (map && marker) {
+          map.setView([selectedLat, selectedLng], 15);
+          marker.setLatLng([selectedLat, selectedLng]);
+          document.getElementById('location-status').textContent = '✓ Standort aus Vorlage übernommen!';
+      }
+  });
+
+  // Neuen Standort als Vorlage speichern
+  document.getElementById('btn-save-location-template').addEventListener('click', async () => {
+      const nameInput = document.getElementById('location-name');
+      const name = nameInput.value.trim();
+
+      if (!name) return alert("Bitte gib einen Namen für diesen Standort ein!");
+
+      // Nimmt den aktuellen Mittelpunkt der Karte (oder des Fadenkreuzes)
+      const center = map ? map.getCenter() : { lat: selectedLat, lng: selectedLng };
+
+      await addDoc(collection(db, "locations"), {
+          name: name,
+          lat: center.lat,
+          lng: center.lng,
+          createdAt: new Date()
+      });
+
+      nameInput.value = '';
+      alert(`Standort "${name}" wurde erfolgreich gespeichert!`);
+  });
+
+  window.deleteLocation = async (id) => {
+      if (confirm("Diesen gespeicherten Standort löschen?")) {
+          await deleteDoc(doc(db, "locations", id));
+      }
+  };
+
   // ADMIN VERWALTUNG & LISTEN
   function loadAdminUsers() {
       onSnapshot(collection(db, "users"), (snapshot) => {
@@ -701,7 +796,6 @@
               const u = docSnap.data();
               const uid = docSnap.id;
 
-              // Visuelle Kachel/Chip erstellen (Touch-optimiert)
               const chip = document.createElement('div');
               chip.className = 'user-chip';
               chip.dataset.userData = JSON.stringify({email: u.email, name: u.name});
@@ -713,14 +807,12 @@
                   </div>
               `;
               
-              // Klick/Tipp-Event zum Auswählen / Abwählen
               chip.addEventListener('click', () => {
                   chip.classList.toggle('selected');
               });
 
               chipsContainer.appendChild(chip);
 
-              // Eintrag in Admin-Nutzerliste erstellen
               const isSelf = auth.currentUser && auth.currentUser.uid === uid;
               const card = document.createElement('div');
               card.className = 'card';
@@ -741,7 +833,6 @@
       });
   }
 
-  // Alle auswählen / Auswahl aufheben Buttons
   document.getElementById('btn-select-all').addEventListener('click', () => {
       document.querySelectorAll('.user-chip').forEach(chip => chip.classList.add('selected'));
   });
@@ -823,7 +914,7 @@
               list.innerHTML += `
                   <div class="card">
                       <div>
-                          <strong>📅 ${inv.date}</strong><br>
+                          <strong>${inv.date}</strong><br>
                           <small>${inv.details || ''}</small><br>
                           <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">📍 Auf Karte anzeigen</a>
                       </div>
@@ -832,7 +923,7 @@
       });
   }
 
-  // MOBIL-OPTIMIERTE KARTEN-INITIALISIERUNG
+  // KARTEN-INITIALISIERUNG
   function initMap() {
       setTimeout(() => {
           if (!map) {
@@ -845,7 +936,6 @@
 
               marker = L.marker([selectedLat, selectedLng]).addTo(map);
 
-              // Button-Klick: Holt sich die Position der aktuellen Kartenmitte (Fadenkreuz)
               document.getElementById('btn-set-location').addEventListener('click', () => {
                   const center = map.getCenter();
                   selectedLat = center.lat;
