@@ -166,6 +166,26 @@
             border: 1px solid var(--border); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
             display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;
         }
+        .invitation-card {
+            cursor: pointer;
+            transition: border-color 0.2s, transform 0.1s;
+        }
+        .invitation-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* MODAL STYLING */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;
+            z-index: 2000; padding: 20px;
+        }
+        .modal-content {
+            background: white; width: 100%; max-width: 500px; border-radius: var(--radius);
+            padding: 24px; box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 16px;
+        }
 
         /* USER CHIPS */
         .user-chips-grid {
@@ -560,11 +580,18 @@
                 Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1 z"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                 Profil
             </button>
         </div>
 
+    </div>
+</div>
+
+<!-- Modal Container für Einladungs-Details -->
+<div id="invitation-modal" class="modal-overlay hidden">
+    <div class="modal-content" id="modal-content-box">
+        <!-- Inhalt wird dynamisch befüllt -->
     </div>
 </div>
 
@@ -609,8 +636,9 @@
     let map = null;
     let currentChatRoom = "global";
     let activeChatUnsubscribe = null;
+    let invitationsCache = {};
 
-    // Globale Funktionen für Admin-Aktionen (mit Rollenprüfung)
+    // Globale Funktionen für Admin-Aktionen
     window.toggleGroupMember = async (groupId, userEmail, add) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const group = chatGroupsList.find(g => g.id === groupId);
@@ -658,6 +686,7 @@
         if (confirm("Möchtest du diesen Einladungs-Eintrag wirklich löschen?")) {
             try {
                 await deleteDoc(doc(db, "invitations", invitationId));
+                closeModal();
             } catch (err) {
                 alert('Fehler beim Löschen der Einladung: ' + err.message);
             }
@@ -676,6 +705,103 @@
             await deleteDoc(doc(db, "users", uid));
         }
     };
+
+    window.openInvitationModal = (invId) => {
+        const inv = invitationsCache[invId];
+        if (!inv) return;
+        const modal = document.getElementById('invitation-modal');
+        const contentBox = document.getElementById('modal-content-box');
+        const isAdmin = currentUserData && currentUserData.role === 'admin';
+
+        contentBox.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:var(--primary-dark);">Einladungsdetails</h3>
+                <button class="small-btn btn-secondary" onclick="window.closeModal()" style="padding:2px 8px;">✕</button>
+            </div>
+            <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
+                <div><strong>Datum & Uhrzeit:</strong> ${inv.datetime}</div>
+                <div><strong>Erstellt von:</strong> ${inv.createdBy}</div>
+                <div><strong>Empfänger:</strong> ${inv.recipients ? inv.recipients.join(', ') : 'Keine'}</div>
+                <div><strong>Hinweise:</strong> ${inv.details || 'Keine'}</div>
+                ${inv.updatedAt ? `<div style="color: var(--primary); font-size: 0.8rem; font-weight: 500;">⚡ Diese Einladung wurde im Nachhinein aktualisiert.</div>` : ''}
+                <div>
+                    <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary); font-weight:500; display:flex; align-items:center; gap:4px; text-decoration:underline;">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        Standort auf Google Maps öffnen
+                    </a>
+                </div>
+            </div>
+            ${isAdmin ? `
+                <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                    <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
+                    <button class="small-btn" onclick="window.startEditingInvitation('${invId}')">Bearbeiten & Neu senden</button>
+                </div>
+            ` : ''}
+        `;
+        modal.classList.remove('hidden');
+    };
+
+    window.closeModal = () => {
+        document.getElementById('invitation-modal').classList.add('hidden');
+    };
+
+    window.startEditingInvitation = (invId) => {
+        const inv = invitationsCache[invId];
+        if (!inv) return;
+        window.closeModal();
+
+        // Formularfelder vorausfüllen
+        document.getElementById('datetime-picker')._flatpickr.setDate(inv.datetime, true);
+        document.getElementById('details-input').value = inv.details || '';
+        
+        selectedUserEmails.clear();
+        if (inv.recipients) {
+            inv.recipients.forEach(email => selectedUserEmails.add(email));
+        }
+        renderUserChips();
+
+        // Button umfunktionieren für Update
+        const sendBtn = document.getElementById('send-invite-btn');
+        sendBtn.innerText = "Änderungen speichern & aktualisiert per Mail senden";
+        sendBtn.onclick = () => window.updateAndResendInvitation(invId);
+
+        // Zum Tab wechseln
+        navInviteBtn.click();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    window.updateAndResendInvitation = async (invId) => {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
+        const selectedEmails = Array.from(selectedUserEmails);
+        if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
+        const datetime = document.getElementById('datetime-picker').value;
+        const details = document.getElementById('details-input').value;
+
+        try {
+            await updateDoc(doc(db, "invitations", invId), {
+                recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
+            });
+
+            const mailSubject = "AKTUALISIERT: Einladung zur Hütte Dangstetten";
+            const mailBody = `Hallo zusammen,\n\ndie Einladung zur Hütte Dangstetten wurde aktualisiert!\n\nAktualisierte Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+
+            window.location.href = `mailto:${selectedEmails.join(',')}` +
+                `?subject=${encodeURIComponent(mailSubject)}` +
+                `&body=${encodeURIComponent(mailBody)}`;
+
+            // Reset Send-Button
+            resetSendButtonToCreate();
+            alert('Einladung erfolgreich aktualisiert und Mail-Client geöffnet!');
+        } catch (err) {
+            alert('Fehler beim Aktualisieren: ' + err.message);
+        }
+    };
+
+    function resetSendButtonToCreate() {
+        const sendBtn = document.getElementById('send-invite-btn');
+        sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung per Mail senden`;
+        sendBtn.onclick = createNewInvitation;
+    }
 
     // UI Navigation
     const authSection = document.getElementById('auth-section');
@@ -947,28 +1073,30 @@
         });
     }
 
+    async function createNewInvitation() {
+        if (!currentUserData || currentUserData.role !== 'admin') return;
+        const selectedEmails = Array.from(selectedUserEmails);
+        if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
+        const datetime = document.getElementById('datetime-picker').value;
+        const details = document.getElementById('details-input').value;
+        const center = map.getCenter();
+        const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+
+        await addDoc(collection(db, "invitations"), {
+            createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
+        });
+
+        const mailSubject = "Einladung zur Hütte Dangstetten";
+        const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
+
+        window.location.href = `mailto:${selectedEmails.join(',')}` +
+            `?subject=${encodeURIComponent(mailSubject)}` +
+            `&body=${encodeURIComponent(mailBody)}`;
+    }
+
     const sendInviteBtn = document.getElementById('send-invite-btn');
     if (sendInviteBtn) {
-        sendInviteBtn.addEventListener('click', async () => {
-            if (!currentUserData || currentUserData.role !== 'admin') return;
-            const selectedEmails = Array.from(selectedUserEmails);
-            if (selectedEmails.length === 0) { alert('Mindestens eine Person auswählen.'); return; }
-            const datetime = document.getElementById('datetime-picker').value;
-            const details = document.getElementById('details-input').value;
-            const center = map.getCenter();
-            const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
-
-            await addDoc(collection(db, "invitations"), {
-                createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
-            });
-
-            const mailSubject = "Einladung zur Hütte Dangstetten";
-            const mailBody = `Hallo zusammen,\n\nhiermit lade ich euch herzlich zu einem gemeinsamen Treffen an der Hütte Dangstetten ein.\n\nAlle wichtigen Details im Überblick:\n- Datum & Uhrzeit: ${datetime}\n- Anmerkungen / Hinweise: ${details || 'Keine zusätzlichen Hinweise'}\n- Treffpunkt (Google Maps Karte): ${mapsUrl}\n\nWir freuen uns auf euch!\n\nViele Grüße\n${currentUserData ? currentUserData.name : auth.currentUser.email}`;
-
-            window.location.href = `mailto:${selectedEmails.join(',')}` +
-                `?subject=${encodeURIComponent(mailSubject)}` +
-                `&body=${encodeURIComponent(mailBody)}`;
-        });
+        sendInviteBtn.onclick = createNewInvitation;
     }
 
     function loadInvitations() {
@@ -976,34 +1104,32 @@
             const container = document.getElementById('invitations-list');
             if (!container) return;
             container.innerHTML = '';
+            invitationsCache = {};
             
             let count = 0;
             snapshot.forEach(docSnap => {
                 const inv = docSnap.data();
                 const invId = docSnap.id;
+                invitationsCache[invId] = inv;
+
                 const isAdmin = currentUserData && currentUserData.role === 'admin';
                 const isRecipient = auth.currentUser && inv.recipients && inv.recipients.includes(auth.currentUser.email);
 
-                // User dürfen nur Einladungen sehen, in denen sie eingeladen sind
                 if (isAdmin || isRecipient) {
                     count++;
                     const card = document.createElement('div');
-                    card.className = 'card';
+                    card.className = 'card invitation-card';
+                    card.onclick = () => window.openInvitationModal(invId);
                     card.innerHTML = `
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div style="display:flex; flex-direction:column; gap:4px;">
                                 <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
                                     <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                                     <strong>Datum: ${inv.datetime}</strong>
+                                    ${inv.updatedAt ? '<span class="badge-user" style="font-size:0.65rem; padding:1px 4px;">Aktualisiert</span>' : ''}
                                 </div>
-                                <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Empfänger: ${inv.recipients ? inv.recipients.join(', ') : 'Alle'}</div>
-                                ${inv.details ? `<div style="font-size:0.85rem;">Hinweis: ${inv.details}</div>` : ''}
-                                <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary); font-size:0.85rem; font-weight:500; display:flex; align-items:center; gap:4px; margin-top:4px;">
-                                    <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                                    Karte aufrufen
-                                </a>
+                                <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Klick für Details</div>
                             </div>
-                            ${isAdmin ? `<button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>` : ''}
                         </div>
                     `;
                     container.appendChild(card);
