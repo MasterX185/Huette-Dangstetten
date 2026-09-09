@@ -60,9 +60,50 @@
         input, select, textarea { 
             width: 100%; padding: 12px;
             border: 1px solid #ccc; border-radius: 6px; font-family: inherit;
-            font-size: 16px; /* Verhindert automatisches Zoomen auf iOS */
+            font-size: 16px;
         }
-        select[multiple] { height: 110px; }
+
+        /* CHECKBOX-LISTE FÜR NUTZERAUSWAHL */
+        .user-checkbox-list {
+            max-height: 180px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px;
+            background: #fff;
+        }
+
+        .user-checkbox-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+
+        .user-checkbox-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .user-checkbox-item label {
+            margin-bottom: 0;
+            font-weight: normal;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .select-all-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
 
         button { 
             background-color: var(--primary); color: white; border: none; 
@@ -89,7 +130,49 @@
         .badge-admin { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; }
         .badge-user { background: #3498db; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.75em; }
         .admin-section-box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa; margin-top: 15px; }
-        #map { height: 200px; width: 100%; border-radius: 6px; margin-top: 5px; }
+
+        /* MOBIL-OPTIMIERTER KARTEN-CONTAINER MIT FADENKREUZ */
+        .map-wrapper {
+            position: relative;
+            width: 100%;
+            height: 260px;
+            margin-top: 5px;
+        }
+
+        #map { 
+            height: 100%; 
+            width: 100%; 
+            border-radius: 6px; 
+            z-index: 1;
+            touch-action: pan-x pan-y;
+        }
+
+        /* Optisches Fadenkreuz in der Kartenmitte */
+        .map-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin-top: -10px;
+            margin-left: -10px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .map-crosshair::before, .map-crosshair::after {
+            content: '';
+            position: absolute;
+            background: #e74c3c;
+        }
+
+        .map-crosshair::before {
+            top: 9px; left: 0; width: 20px; height: 2px;
+        }
+
+        .map-crosshair::after {
+            top: 0; left: 9px; width: 2px; height: 20px;
+        }
 
         /* RESPONSIVER CHAT */
         .chat-container {
@@ -255,7 +338,7 @@
 
     <!-- DASHBOARD SECTION -->
     <div id="dashboard-section" class="hidden">
-        <h2>Hallo, <span id="user-display-name"></span>!</h2>
+        <h2>Hallo, <span id="user-display-name"></span>! 👋</h2>
         <p style="font-size: 0.85em; color: #666;">Angemeldet als: <span id="user-email"></span></p>
 
         <!-- CHAT SECTION -->
@@ -275,16 +358,23 @@
         </div>
 
         <!-- EINLADUNGEN BEREICH -->
-        <h3 style="margin-top: 30px;">Deine Einladungen</h3>
+        <h3 style="margin-top: 30px;">📅 Deine Einladungen</h3>
         <div id="invitation-list">Lädt Einladungen...</div>
 
         <!-- BEREICH NUR FÜR ADMIN -->
         <div id="admin-view" class="hidden">
             <div class="admin-section-box">
-                <h3>Admin: Einladung senden</h3>
+                <h3>👑 Admin: Einladung senden</h3>
+                
                 <div class="form-group">
-                    <label for="invite-user-select">Empfänger (Strg/Cmd gedrückt halten für mehrere)</label>
-                    <select id="invite-user-select" multiple></select>
+                    <label>Empfänger auswählen:</label>
+                    <div class="select-all-box">
+                        <button type="button" class="btn-secondary small-btn" id="btn-select-all">Alle auswählen</button>
+                        <button type="button" class="btn-secondary small-btn" id="btn-deselect-all">Auswahl aufheben</button>
+                    </div>
+                    <div class="user-checkbox-list" id="invite-user-checkboxes">
+                        <!-- Checkboxen werden per JS eingefügt -->
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -293,8 +383,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Treffpunkt wählen:</label>
-                    <div id="map"></div>
+                    <label>Treffpunkt festlegen:</label>
+                    <div class="map-wrapper">
+                        <div id="map"></div>
+                        <div class="map-crosshair"></div>
+                    </div>
+                    <button type="button" id="btn-set-location" class="btn-secondary" style="margin-top: 8px;">📍 Standort unter dem Fadenkreuz wählen</button>
+                    <small id="location-status" style="display:block; margin-top: 5px; color: #27ae60; font-weight: bold;"></small>
                 </div>
 
                 <div class="form-group">
@@ -353,7 +448,7 @@
   let currentUserData = null;
   let selectedChatPartner = null;
   let chatUnsubscribe = null;
-  let map, marker;
+  let map = null, marker = null;
   let selectedLat = 47.5756, selectedLng = 8.2436;
 
   flatpickr("#invite-date", { enableTime: true, dateFormat: "d.m.Y H:i", locale: "de", minDate: "today" });
@@ -436,15 +531,13 @@
 
   document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-  // EIGENES KONTO LÖSCHEN (REPARIERT)
+  // EIGENES KONTO LÖSCHEN
   document.getElementById('btn-delete-account').addEventListener('click', async () => {
       if (!confirm("Möchtest du dein Konto unwiderruflich löschen?")) return;
       const user = auth.currentUser;
       if (user) {
           try {
-              // 1. Aus Firestore entfernen
               await deleteDoc(doc(db, "users", user.uid));
-              // 2. Aus Authentication entfernen
               await deleteUser(user);
               alert("Konto erfolgreich gelöscht.");
           } catch (error) {
@@ -555,17 +648,26 @@
   // ADMIN VERWALTUNG & LISTEN
   function loadAdminUsers() {
       onSnapshot(collection(db, "users"), (snapshot) => {
-          const select = document.getElementById('invite-user-select');
+          const checkboxContainer = document.getElementById('invite-user-checkboxes');
           const usersList = document.getElementById('admin-users-list');
-          select.innerHTML = '';
+          checkboxContainer.innerHTML = '';
           usersList.innerHTML = '';
 
           snapshot.forEach(docSnap => {
               const u = docSnap.data();
               const uid = docSnap.id;
 
-              select.innerHTML += `<option value='${JSON.stringify({email: u.email, name: u.name})}'>${u.name || 'Unbekannt'} (${u.email})</option>`;
+              // Checkbox-Eintrag für Einladungen erstellen
+              const userObj = JSON.stringify({email: u.email, name: u.name});
+              const itemDiv = document.createElement('div');
+              itemDiv.className = 'user-checkbox-item';
+              itemDiv.innerHTML = `
+                  <input type="checkbox" id="user-cb-${uid}" class="invite-user-cb" value='${userObj}'>
+                  <label for="user-cb-${uid}">${u.name || 'Unbekannt'} (${u.email})</label>
+              `;
+              checkboxContainer.appendChild(itemDiv);
 
+              // Eintrag in Admin-Nutzerliste erstellen
               const isSelf = auth.currentUser && auth.currentUser.uid === uid;
               const card = document.createElement('div');
               card.className = 'card';
@@ -585,6 +687,15 @@
           });
       });
   }
+
+  // Alle auswählen / Auswahl aufheben Buttons
+  document.getElementById('btn-select-all').addEventListener('click', () => {
+      document.querySelectorAll('.invite-user-cb').forEach(cb => cb.checked = true);
+  });
+
+  document.getElementById('btn-deselect-all').addEventListener('click', () => {
+      document.querySelectorAll('.invite-user-cb').forEach(cb => cb.checked = false);
+  });
 
   function loadAdminInvitations() {
       onSnapshot(collection(db, "invitations"), (snapshot) => {
@@ -627,15 +738,14 @@
 
   // EINLADUNG VORBEREITEN
   document.getElementById('btn-send-invite').addEventListener('click', async () => {
-      const select = document.getElementById('invite-user-select');
-      const selectedOpts = Array.from(select.selectedOptions);
+      const checkedBoxes = Array.from(document.querySelectorAll('.invite-user-cb:checked'));
       const inviteDate = document.getElementById('invite-date').value;
       const details = document.getElementById('invite-details').value.trim();
 
-      if (selectedOpts.length === 0 || !inviteDate) return alert("Nutzer & Datum wählen!");
+      if (checkedBoxes.length === 0 || !inviteDate) return alert("Bitte mindestens einen Nutzer und ein Datum auswählen!");
 
       const mapsUrl = `https://www.google.com/maps?q=${selectedLat},${selectedLng}`;
-      const users = selectedOpts.map(o => JSON.parse(o.value));
+      const users = checkedBoxes.map(cb => JSON.parse(cb.value));
       const emails = users.map(u => u.email).join(',');
 
       for (const u of users) {
@@ -660,7 +770,7 @@
               list.innerHTML += `
                   <div class="card">
                       <div>
-                          <strong>${inv.date}</strong><br>
+                          <strong>📅 ${inv.date}</strong><br>
                           <small>${inv.details || ''}</small><br>
                           <a href="${inv.mapsUrl}" target="_blank" style="color:var(--primary-dark)">📍 Auf Karte anzeigen</a>
                       </div>
@@ -669,14 +779,32 @@
       });
   }
 
+  // MOBIL-OPTIMIERTE KARTEN-INITIALISIERUNG
   function initMap() {
-      if (map) return;
       setTimeout(() => {
-          map = L.map('map').setView([selectedLat, selectedLng], 14);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-          marker = L.marker([selectedLat, selectedLng], { draggable: true }).addTo(map);
-          marker.on('dragend', () => { const p = marker.getLatLng(); selectedLat = p.lat; selectedLng = p.lng; });
-      }, 300);
+          if (!map) {
+              map = L.map('map').setView([selectedLat, selectedLng], 14);
+
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                  maxZoom: 19,
+                  attribution: '© OpenStreetMap'
+              }).addTo(map);
+
+              marker = L.marker([selectedLat, selectedLng]).addTo(map);
+
+              // Button-Klick: Holt sich die Position der aktuellen Kartenmitte (Fadenkreuz)
+              document.getElementById('btn-set-location').addEventListener('click', () => {
+                  const center = map.getCenter();
+                  selectedLat = center.lat;
+                  selectedLng = center.lng;
+                  
+                  marker.setLatLng(center);
+                  document.getElementById('location-status').textContent = '✓ Standort erfolgreich unter dem Fadenkreuz gespeichert!';
+              });
+          }
+
+          map.invalidateSize();
+      }, 400);
   }
 </script>
 
