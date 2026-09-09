@@ -139,11 +139,16 @@
         .map-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
 
         /* CHAT STYLES */
-        .chat-container { display: flex; flex-direction: column; height: 420px; border: 1px solid #ccc; border-radius: 8px; background-color: #e5ddd5; overflow: hidden; }
-        .chat-sidebar { background: #f0f0f0; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 5px; overflow-x: auto; }
+        .chat-container { display: flex; flex-direction: column; height: 460px; border: 1px solid #ccc; border-radius: 8px; background-color: #e5ddd5; overflow: hidden; }
+        .chat-sidebar { background: #f0f0f0; padding: 10px; border-bottom: 1px solid #ccc; display: flex; gap: 5px; overflow-x: auto; flex-shrink: 0; }
         .chat-room-btn { background: #ddd; border: none; padding: 6px 12px; border-radius: 15px; font-size: 0.85em; cursor: pointer; white-space: nowrap; }
         .chat-room-btn.active { background: var(--primary); color: white; }
         
+        /* Neuer Chat-Header im Overlay */
+        .chat-header-bar { background: var(--primary-dark); color: white; padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .chat-header-title { font-weight: bold; font-size: 0.95em; }
+        .chat-header-sub { font-size: 0.75em; opacity: 0.85; }
+
         .chat-messages { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
         .chat-message { max-width: 75%; padding: 8px 12px; border-radius: 8px; font-size: 0.9em; word-wrap: break-word; }
         .chat-message.my-message { align-self: flex-end; background-color: var(--chat-my-msg); }
@@ -151,7 +156,7 @@
         .chat-sender { font-size: 0.75em; font-weight: bold; color: var(--primary-dark); margin-bottom: 3px; }
         .chat-time { font-size: 0.65em; color: #888; float: right; margin-top: 4px; margin-left: 8px; }
 
-        .chat-input-container { display: flex; padding: 10px; background: #f0f0f0; gap: 8px; }
+        .chat-input-container { display: flex; padding: 10px; background: #f0f0f0; gap: 8px; flex-shrink: 0; }
         .chat-input-container input { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
         .chat-input-container button { width: auto; margin-top: 0; padding: 0 15px; }
 
@@ -265,12 +270,23 @@
             </div>
 
             <div class="chat-container">
+                <!-- Chat Sidebar (Auswahl) -->
                 <div class="chat-sidebar" id="chat-rooms-list">
                     <button class="chat-room-btn active" data-room="global">Hütten-Hauptchat</button>
                 </div>
+
+                <!-- Chat Header Overlay (zeigt an, wo man ist) -->
+                <div class="chat-header-bar" id="chat-header-bar">
+                    <div>
+                        <div class="chat-header-title" id="active-chat-title">Hütten-Hauptchat</div>
+                        <div class="chat-header-sub" id="active-chat-sub">Öffentlicher Raum für alle Mitglieder</div>
+                    </div>
+                </div>
+
                 <div class="chat-messages" id="chat-messages">
                     <em>Lade Nachrichten...</em>
                 </div>
+
                 <div class="chat-input-container">
                     <input type="text" id="chat-input" placeholder="Nachricht schreiben...">
                     <button id="chat-send-btn">Senden</button>
@@ -295,6 +311,9 @@
             <div id="admin-section" class="admin-section-box hidden">
                 <h4>Admin-Bereich: Nutzerverwaltung</h4>
                 <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
+
+                <h4 style="margin-top: 20px;">Admin-Bereich: Gruppen verwalten</h4>
+                <div id="admin-group-management-list"><em>Lade Gruppen...</em></div>
             </div>
 
             <button id="logout-btn" class="logout-btn">Abmelden</button>
@@ -344,6 +363,7 @@
     let isRegistering = false;
     let currentUserData = null;
     let usersList = [];
+    let chatGroupsList = [];
     let selectedUserEmails = new Set();
     let savedLocations = [];
     let map = null;
@@ -537,6 +557,7 @@
             renderUserChips();
             renderAdminUsers();
             updateChatRoomsList();
+            renderAdminGroups();
         });
     }
 
@@ -693,13 +714,13 @@
 
     function initChatRooms() {
         updateChatRoomsList();
-        switchChatRoom("global");
+        switchChatRoom("global", "Hütten-Hauptchat", "Öffentlicher Raum für alle Mitglieder");
     }
 
     function updateChatRoomsList() {
         const sidebar = document.getElementById('chat-rooms-list');
         sidebar.innerHTML = `
-            <button class="chat-room-btn ${currentChatRoom === 'global' ? 'active' : ''}" data-room="global">Hütten-Hauptchat</button>
+            <button class="chat-room-btn ${currentChatRoom === 'global' ? 'active' : ''}" data-room="global" onclick="switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle Mitglieder')">Hütten-Hauptchat</button>
         `;
 
         // DMs mit anderen Usern
@@ -709,30 +730,53 @@
                 const btn = document.createElement('button');
                 btn.className = `chat-room-btn ${currentChatRoom === dmId ? 'active' : ''}`;
                 btn.innerText = `💬 ${u.name}`;
-                btn.onclick = () => switchChatRoom(dmId);
+                btn.onclick = () => switchChatRoom(dmId, `Direktnachricht: ${u.name}`, `Privater Chat mit ${u.email}`);
                 sidebar.appendChild(btn);
             }
         });
 
         // Benutzerdefinierte Gruppenchats laden
         onSnapshot(collection(db, "chat_groups"), (snapshot) => {
+            chatGroupsList = [];
             snapshot.forEach(docSnap => {
-                const group = docSnap.data();
-                const roomId = "group_" + docSnap.id;
-                const btn = document.createElement('button');
-                btn.className = `chat-room-btn ${currentChatRoom === roomId ? 'active' : ''}`;
-                btn.innerText = `👥 ${group.name}`;
-                btn.onclick = () => switchChatRoom(roomId);
-                sidebar.appendChild(btn);
+                chatGroupsList.push({ id: docSnap.id, ...docSnap.data() });
             });
+
+            chatGroupsList.forEach(group => {
+                const roomId = "group_" + group.id;
+                // Prüfen ob User Mitglied ist (oder Admin)
+                const isMember = group.members && group.members.includes(auth.currentUser.email);
+                const isAdmin = currentUserData && currentUserData.role === 'admin';
+
+                if (isMember || isAdmin) {
+                    const btn = document.createElement('button');
+                    btn.className = `chat-room-btn ${currentChatRoom === roomId ? 'active' : ''}`;
+                    btn.innerText = `👥 ${group.name}`;
+                    btn.onclick = () => switchChatRoom(roomId, `Gruppe: ${group.name}`, `Gruppenchat`);
+                    sidebar.appendChild(btn);
+                }
+            });
+
+            if (currentUserData && currentUserData.role === 'admin') {
+                renderAdminGroups();
+            }
         });
     }
 
-    function switchChatRoom(roomId) {
+    window.switchChatRoom = (roomId, title, subtitle) => {
         currentChatRoom = roomId;
+        
+        // Aktiven Zustand in Sidebar aktualisieren
         document.querySelectorAll('.chat-room-btn').forEach(b => {
-            b.classList.toggle('active', b.dataset?.room === roomId || b.innerText.includes(roomId));
+            b.classList.remove('active');
+            if (b.dataset.room === roomId || b.getAttribute('onclick')?.includes(`'${roomId}'`)) {
+                b.classList.add('active');
+            }
         });
+
+        // Chat Header aktualisieren
+        document.getElementById('active-chat-title').innerText = title;
+        document.getElementById('active-chat-sub').innerText = subtitle;
 
         if (activeChatUnsubscribe) {
             activeChatUnsubscribe();
@@ -766,7 +810,7 @@
 
             container.scrollTop = container.scrollHeight;
         });
-    }
+    };
 
     document.getElementById('chat-send-btn').addEventListener('click', sendChatMessage);
     document.getElementById('chat-input').addEventListener('keypress', (e) => {
@@ -807,6 +851,7 @@
                 await addDoc(collection(db, "chat_groups"), {
                     name: name,
                     createdBy: auth.currentUser.email,
+                    members: [auth.currentUser.email], // Ersteller direkt drin
                     createdAt: serverTimestamp()
                 });
                 nameInput.value = '';
@@ -838,6 +883,63 @@
             container.appendChild(div);
         });
     }
+
+    function renderAdminGroups() {
+        const container = document.getElementById('admin-group-management-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (chatGroupsList.length === 0) {
+            container.innerHTML = '<em>Keine Gruppen vorhanden.</em>';
+            return;
+        }
+
+        chatGroupsList.forEach(group => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            
+            let membersHtml = '<div style="margin: 8px 0; font-size:0.85em;"><strong>Mitglieder verwalten:</strong><br>';
+            usersList.forEach(u => {
+                const isChecked = group.members && group.members.includes(u.email) ? 'checked' : '';
+                membersHtml += `<label style="display:inline-block; margin-right:10px; font-weight:normal;">
+                    <input type="checkbox" ${isChecked} onchange="toggleGroupMember('${group.id}', '${u.email}', this.checked)"> ${u.name}
+                </label>`;
+            });
+            membersHtml += '</div>';
+
+            div.innerHTML = `
+                <div style="flex: 1;">
+                    <strong>👥 ${group.name}</strong><br>
+                    <small>Erstellt von: ${group.createdBy}</small>
+                    ${membersHtml}
+                </div>
+                <div>
+                    <button class="small-btn delete-btn" onclick="deleteGroup('${group.id}')">Gruppe löschen</button>
+                </div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    window.toggleGroupMember = async (groupId, userEmail, add) => {
+        const group = chatGroupsList.find(g => g.id === groupId);
+        if (!group) return;
+
+        let members = group.members || [];
+        if (add) {
+            if (!members.includes(userEmail)) members.push(userEmail);
+        } else {
+            members = members.filter(e => e !== userEmail);
+        }
+
+        await updateDoc(doc(db, "chat_groups", groupId), { members: members });
+    };
+
+    window.deleteGroup = async (groupId) => {
+        if (confirm("Möchtest du diesen Gruppenchat wirklich löschen?")) {
+            await deleteDoc(doc(db, "chat_groups", groupId));
+        }
+    };
 
     window.toggleUserRole = async (uid, currentRole) => {
         const newRole = currentRole === 'admin' ? 'user' : 'admin';
