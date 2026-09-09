@@ -282,9 +282,10 @@
             border-bottom: 1px solid #f1f5f9;
             background: white;
             transition: background 0.15s;
+            position: relative;
         }
         .chat-room-item:hover { background: #f8fafc; }
-        .chat-room-item.active { background: var(--primary-light); }
+        .chat-room-item.active { background: var(--primary-light); border-left: 4px solid var(--primary); }
         
         .room-avatar {
             width: 44px; height: 44px; border-radius: 50%;
@@ -364,9 +365,10 @@
             background: #fff;
             border-top: 1px solid var(--border);
             padding: 16px;
-            max-height: 220px;
+            max-height: 250px;
             overflow-y: auto;
             flex-shrink: 0;
+            box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05);
         }
 
         .map-wrapper { position: relative; width: 100%; height: 240px; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
@@ -513,7 +515,7 @@
                                 </div>
                             </div>
                             <div>
-                                <button id="toggle-chat-settings-btn" class="btn-secondary small-btn hidden" style="background:transparent; color:var(--text-muted); padding:4px;" title="Einstellungen">
+                                <button id="toggle-chat-settings-btn" class="btn-secondary small-btn hidden" style="background:transparent; color:var(--text-muted); padding:4px;" title="Gruppen-Admin-Verwaltung">
                                     <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                                 </button>
                             </div>
@@ -524,10 +526,10 @@
                             <em>Lade Nachrichten...</em>
                         </div>
 
-                        <!-- Gruppen Einstellungen Panel -->
+                        <!-- Gruppen / Admin Einstellungen Panel direkt im Chat integriert -->
                         <div id="chat-settings-panel" class="settings-panel hidden">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <strong style="font-size:0.9rem; color:var(--primary-dark);">Tag-Kanal Einstellungen</strong>
+                                <strong id="chat-settings-title" style="font-size:0.9rem; color:var(--primary-dark);">Admin-Gruppenverwaltung</strong>
                                 <button class="small-btn btn-secondary" onclick="document.getElementById('chat-settings-panel').classList.add('hidden')" style="padding:2px 8px;">✕</button>
                             </div>
                             <div id="group-settings-content"></div>
@@ -562,18 +564,18 @@
 
                 <!-- ADMIN: TAGS VERWALTEN & ERSTELLEN -->
                 <div id="admin-tags-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Tags erstellen</h3>
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Tags / Gruppen erstellen</h3>
                     <div class="form-group" style="margin-bottom:8px;">
-                        <input type="text" id="new-tag-name-input" placeholder="Tag-Name (z.B. IT, Admin, Support)">
+                        <input type="text" id="new-tag-name-input" placeholder="Tag-Name (z.B. IT, Vorstand)">
                     </div>
-                    <button id="create-tag-btn" class="small-btn">Tag erstellen & Chat-Kanal öffnen</button>
+                    <button id="create-tag-btn" class="small-btn">Gruppe / Tag erstellen</button>
 
-                    <h4 style="margin:16px 0 8px 0; font-size:0.9rem;">Vorhandene Tags</h4>
+                    <h4 style="margin:16px 0 8px 0; font-size:0.9rem;">Vorhandene Gruppen & Tags</h4>
                     <div id="admin-tags-list"><em>Lade Tags...</em></div>
                 </div>
 
                 <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzer & Tag-Zuweisung</h3>
+                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzer & Berechtigungen</h3>
                     <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
                 </div>
 
@@ -593,7 +595,7 @@
                 Chats
             </button>
             <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1 z"/></svg>
                 Profil
             </button>
         </div>
@@ -625,7 +627,6 @@
         getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc, query, orderBy, serverTimestamp, deleteDoc, updateDoc 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // EmailJS initialisieren (Trage hier deinen Public Key von EmailJS ein)
     emailjs.init("CFQLo5C6SDyav2WuP");
 
     const keyPart1 = "AIzaSyCLhOlcwKeqtdNNF_";
@@ -684,6 +685,10 @@
         }
         try {
             await updateDoc(doc(db, "users", uid), { tags });
+            // Direkt im Einstellungs-Panel aktualisieren falls offen
+            if (currentChatRoom === "tag_" + tagName) {
+                setupTagSettingsPanel(tagName);
+            }
         } catch (err) {
             alert('Fehler beim Zuweisen des Tags: ' + err.message);
         }
@@ -691,14 +696,14 @@
 
     window.deleteTag = async (tagId, tagName) => {
         if (!currentUserData || currentUserData.role !== 'admin') return;
-        if (confirm(`Tag "${tagName}" wirklich löschen?`)) {
+        if (confirm(`Gruppe / Tag "${tagName}" wirklich löschen?`)) {
             try {
                 await deleteDoc(doc(db, "tags", tagId));
                 if (currentChatRoom === "tag_" + tagName) {
                     window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
                 }
             } catch (err) {
-                alert('Fehler beim Löschen des Tags: ' + err.message);
+                alert('Fehler beim Löschen: ' + err.message);
             }
         }
     };
@@ -812,7 +817,6 @@
                 recipients: selectedEmails, datetime, details, updatedAt: serverTimestamp()
             });
 
-            // E-Mail via EmailJS versenden
             await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
                 to_email: selectedEmails.join(','),
                 subject: "AKTUALISIERT: Einladung zur Hütte Dangstetten",
@@ -1048,7 +1052,7 @@
             const name = input.value.trim();
             if (!name) return;
             if (tagsList.some(t => t.name.toLowerCase() === name.toLowerCase())) {
-                alert('Diesen Tag gibt es bereits.');
+                alert('Diesen Tag bzw. Kanal gibt es bereits.');
                 return;
             }
             await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
@@ -1059,7 +1063,7 @@
     function renderAdminTags() {
         const container = document.getElementById('admin-tags-list');
         if (!container) return;
-        container.innerHTML = tagsList.length === 0 ? '<em>Keine Tags erstellt.</em>' : '';
+        container.innerHTML = tagsList.length === 0 ? '<em>Keine Gruppen erstellt.</em>' : '';
         tagsList.forEach(t => {
             const div = document.createElement('div');
             div.className = 'card';
@@ -1070,7 +1074,7 @@
             div.style.alignItems = 'center';
             div.innerHTML = `
                 <span class="tag-badge">${t.name}</span>
-                <button class="small-btn delete-btn" onclick="window.deleteTag('${t.id}', '${t.name}')">Löschen</button>
+                <button class="small-btn delete-btn" onclick="window.deleteTag('${t.id}', '${t.name}')">Gruppe löschen</button>
             `;
             container.appendChild(div);
         });
@@ -1179,7 +1183,6 @@
                 createdBy: auth.currentUser.email, recipients: selectedEmails, datetime, details, mapsUrl, createdAt: serverTimestamp()
             });
 
-            // E-Mail über EmailJS (GMX) absenden
             await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
                 to_email: selectedEmails.join(','),
                 subject: "Einladung zur Hütte Dangstetten",
@@ -1277,10 +1280,10 @@
                     </div>
                     <div class="room-meta">
                         <div class="room-name"># ${tag.name}</div>
-                        <div class="room-sub">Tag-Kanal</div>
+                        <div class="room-sub">Gruppen-Kanal</div>
                     </div>
                 `;
-                tagItem.onclick = () => window.switchChatRoom(roomId, `# ${tag.name}`, `Exklusiver Kanal für den Tag ${tag.name}`, '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>');
+                tagItem.onclick = () => window.switchChatRoom(roomId, `# ${tag.name}`, `Exklusiver Gruppen-Kanal`, '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>');
                 sidebarList.appendChild(tagItem);
             }
         });
@@ -1314,7 +1317,15 @@
             document.getElementById('chat-main').style.display = 'flex';
         }
 
+        // Sidebar-Active-Klasse aktualisieren, damit sofort sichtbar ist, wo man sich befindet
         document.querySelectorAll('.chat-room-item').forEach(el => el.classList.remove('active'));
+        
+        // Finde das angeklickte Element in der Sidebar und markiere es
+        document.querySelectorAll('.chat-room-item').forEach(el => {
+            if (el.onclick && el.onclick.toString().includes(roomId)) {
+                el.classList.add('active');
+            }
+        });
 
         const settingsBtn = document.getElementById('toggle-chat-settings-btn');
         const settingsPanel = document.getElementById('chat-settings-panel');
@@ -1362,7 +1373,9 @@
     function setupTagSettingsPanel(tagName) {
         if (!currentUserData || currentUserData.role !== 'admin') return;
         const content = document.getElementById('group-settings-content');
-        let membersHtml = `<div style="font-size:0.85rem; margin-bottom:8px;"><strong>Wer hat den Tag "${tagName}":</strong><div style="max-height:140px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc;">`;
+        const tagObj = tagsList.find(t => t.name === tagName);
+        
+        let membersHtml = `<div style="font-size:0.85rem; margin-bottom:12px;"><strong>Mitglieder der Gruppe "${tagName}" verwalten:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc; margin-top:6px;">`;
         usersList.forEach(u => {
             const hasTag = u.tags && u.tags.includes(tagName);
             membersHtml += `<label style="display:block; margin-bottom:4px; font-weight:normal; font-size:0.85rem;">
@@ -1370,6 +1383,13 @@
             </label>`;
         });
         membersHtml += '</div></div>';
+
+        if (tagObj) {
+            membersHtml += `<div style="border-top:1px solid var(--border); pt:8px; display:flex; justify-content:flex-end;">
+                <button class="small-btn delete-btn" onclick="window.deleteTag('${tagObj.id}', '${tagName}')">Diese Gruppe / Kanal komplett löschen</button>
+            </div>`;
+        }
+
         content.innerHTML = membersHtml;
     }
 
@@ -1392,7 +1412,7 @@
         if (!container) return;
         container.innerHTML = '';
         usersList.forEach(u => {
-            let tagsCheckboxes = '<div style="margin: 6px 0; font-size:0.8rem;"><strong>Tags zuweisen:</strong><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
+            let tagsCheckboxes = '<div style="margin: 6px 0; font-size:0.8rem;"><strong>Gruppen zuweisen:</strong><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
             tagsList.forEach(t => {
                 const hasTag = u.tags && u.tags.includes(t.name);
                 tagsCheckboxes += `<label style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
@@ -1410,7 +1430,7 @@
                 ${tagsCheckboxes}
                 <div style="margin-top:6px; display:flex; gap:6px;">
                     <button class="small-btn btn-secondary" onclick="window.toggleUserRole('${u.id}', '${u.role}')">Rolle ändern</button>
-                    <button class="small-btn delete-btn" onclick="window.deleteUserDoc('${u.id}')">Löschen</button>
+                    <button class="small-btn delete-btn" onclick="window.deleteUserDoc('${u.id}')">Nutzer löschen</button>
                 </div>
             `;
             container.appendChild(div);
