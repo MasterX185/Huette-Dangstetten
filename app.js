@@ -38,6 +38,48 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 
+
+
+// 1. Service Worker registrieren
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker aktiv:', reg.scope))
+            .catch(err => console.error('Service Worker Fehler:', err));
+    });
+}
+
+// 2. Installations-Prompt abfangen & Button steuern
+let deferredPrompt;
+const installBtn = document.getElementById('pwa-install-btn'); // Dein Button-Element
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Verhindert das automatische Standard-Banner des Browsers
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Zeige deinen benutzerdefinierten Install-Button an
+    if (installBtn) {
+        installBtn.style.display = 'block';
+    }
+});
+
+// 3. Klick-Event für den Install-Button
+installBtn?.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+        console.log('User hat die App-Installation akzeptiert');
+    }
+    deferredPrompt = null;
+    installBtn.style.display = 'none';
+});
+
+
+
 // RSVP-Handler für eingehende Links aus der E-Mail
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
