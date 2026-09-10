@@ -1078,6 +1078,66 @@ function renderAdminUsers() {
 }
 
 // Zusätzlicher Event-Listener für den Button "Neue Chats / Hauptchat wechseln" in der Seitenleiste
+// Öffnet das Modal zur Chat-Erstellung und befüllt die Nutzerliste
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
-    window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
+    const modal = document.getElementById('new-chat-modal');
+    const userListContainer = document.getElementById('new-chat-user-list');
+    const adminSection = document.getElementById('admin-create-channel-section');
+
+    if (!modal || !userListContainer) return;
+
+    userListContainer.innerHTML = '';
+
+    // Admin-Bereich einblenden falls Admin
+    if (currentUserData && currentUserData.role === 'admin') {
+        adminSection?.classList.remove('hidden');
+    } else {
+        adminSection?.classList.add('hidden');
+    }
+
+    // Nutzer-Auswahl für DMs generieren
+    usersList.forEach(u => {
+        if (u.email !== auth.currentUser.email) {
+            const item = document.createElement('div');
+            item.className = 'chat-room-item';
+            item.style.borderRadius = 'var(--radius-sm)';
+            item.style.border = '1px solid var(--border-strong)';
+            item.innerHTML = `
+            <div class="room-avatar">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
+            <div class="room-meta">
+            <div class="room-name">${u.name || 'Unbenannt'}</div>
+            <div class="room-sub">${u.email}</div>
+            </div>
+            `;
+            item.onclick = () => {
+                const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
+                window.switchChatRoom(dmId, u.name || u.email, 'Privater Chat', (u.name ? u.name[0].toUpperCase() : 'U'));
+                modal.classList.add('hidden');
+            };
+            userListContainer.appendChild(item);
+        }
+    });
+
+    modal.classList.remove('hidden');
+});
+
+// Admin Schnell-Erstellung aus dem Modal heraus
+document.getElementById('modal-create-tag-btn')?.addEventListener('click', async () => {
+    if (!currentUserData || currentUserData.role !== 'admin') return;
+    const input = document.getElementById('modal-new-tag-input');
+    const name = input.value.trim();
+    if (!name) return;
+
+    if (tagsList.some(t => t.name.toLowerCase() === name.toLowerCase())) {
+        alert('Diesen Tag bzw. Kanal gibt es bereits.');
+        return;
+    }
+
+    try {
+        await addDoc(collection(db, "tags"), { name, createdAt: serverTimestamp() });
+        input.value = '';
+        document.getElementById('new-chat-modal')?.classList.add('hidden');
+    } catch (err) {
+        alert('Fehler beim Erstellen des Kanals: ' + err.message);
+    }
 });
