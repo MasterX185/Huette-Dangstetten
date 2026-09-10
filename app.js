@@ -2,7 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
-    signInWithPopup, signInWithRedirect, getRedirectResult
+    signInWithPopup, signInWithRedirect, getRedirectResult, getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
+    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
@@ -40,6 +41,93 @@ let currentChatRoom = "global";
 let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
+
+
+// RSVP-Handler für eingehende Links aus der E-Mail
+async function handleRSVPFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const invId = urlParams.get('rsvp_inv');
+    const status = urlParams.get('rsvp_status'); // 'yes' oder 'no'
+
+    if (invId && status && auth.currentUser) {
+        try {
+            const rsvpRef = doc(db, `invitations/${invId}/responses`, auth.currentUser.uid);
+            await setDoc(rsvpRef, {
+                userEmail: auth.currentUser.email,
+                userName: currentUserData?.name || auth.currentUser.email,
+                status: status, // 'yes' oder 'no'
+                respondedAt: serverTimestamp()
+            });
+
+            // URL bereinigen, damit der Parameter nach dem Laden verschwindet
+            window.history.replaceState({}, document.title, window.location.pathname);
+            alert(status === 'yes' ? 'Vielen Dank! Deine Zusage wurde gespeichert.' : 'Schade! Deine Absage wurde gespeichert.');
+        } catch (err) {
+            console.error("Fehler beim Speichern der Rückmeldung:", err);
+        }
+    }
+}
+
+// Ergänze handleRSVPFromURL() innerhalb von onAuthStateChanged
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        currentUserData = await ensureUserDocument(user);
+        authSection.classList.add('hidden');
+        appSection.classList.remove('hidden');
+        updateUIForCurrentUser();
+        initApp();
+        await handleRSVPFromURL(); // <--- Hier einfügen
+    } else {
+        // ...
+    }
+});
+
+// Aktualisiere openInvitationModal, um Admins die Zu-/Absagen anzuzeigen
+const originalOpenModal = window.openInvitationModal;
+window.openInvitationModal = async (invId) => {
+    const inv = invitationsCache[invId];
+    if (!inv) return;
+
+    // Antworten aus Firestore abrufen
+    const responsesSnap = await getDocs(collection(db, `invitations/${invId}/responses`));
+    let yesList = [];
+    let noList = [];
+
+    responsesSnap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.status === 'yes') yesList.push(data.userName || data.userEmail);
+        if (data.status === 'no') noList.push(data.userName || data.userEmail);
+    });
+
+        const modal = document.getElementById('invitation-modal');
+        const contentBox = document.getElementById('modal-content-box');
+        const isAdmin = currentUserData && currentUserData.role === 'admin';
+
+        contentBox.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; color:var(--primary-dark);">Einladungsdetails</h3>
+        <button class="small-btn btn-secondary" onclick="window.closeModal()" style="padding:2px 8px;">✕</button>
+        </div>
+        <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
+        <div><strong>Datum & Uhrzeit:</strong> ${inv.datetime || 'Nicht angegeben'}</div>
+        <div><strong>Erstellt von:</strong> ${inv.createdBy || 'Unbekannt'}</div>
+        <div><strong>Hinweise:</strong> ${inv.details || 'Keine'}</div>
+
+        <div style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
+        <strong>Status / Rückmeldungen:</strong>
+        <div style="color: #10b981; font-weight: 500; margin-top: 4px;">Zusagen (${yesList.length}): ${yesList.join(', ') || 'Keine'}</div>
+        <div style="color: var(--danger); font-weight: 500; margin-top: 2px;">Absagen (${noList.length}): ${noList.join(', ') || 'Keine'}</div>
+        </div>
+        </div>
+        ${isAdmin ? `
+            <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+            <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
+            <button class="small-btn" onclick="window.startEditingInvitation('${invId}')">Bearbeiten & Neu senden</button>
+            </div>` : ''}
+            `;
+            modal.classList.remove('hidden');
+};
+
 
 /**
  * Garantiert, dass für einen Nutzer ein Firestore-Dokument existiert.
@@ -155,24 +243,48 @@ window.deleteUserDoc = async (uid) => {
     }
 };
 
-window.openInvitationModal = (invId) => {
+window.openInvitationModal = async (invId) => {
     const inv = invitationsCache[invId];
     if (!inv) return;
+
     const modal = document.getElementById('invitation-modal');
     const contentBox = document.getElementById('modal-content-box');
     const isAdmin = currentUserData && currentUserData.role === 'admin';
+    const userUid = auth.currentUser ? auth.currentUser.uid : null;
+
+    // Antworten aus der Subcollection 'responses' live / aktuell abrufen
+    let yesList = [];
+    let noList = [];
+    let myCurrentStatus = null;
+
+    try {
+        const responsesSnap = await getDocs(collection(db, `invitations/${invId}/responses`));
+        responsesSnap.forEach(docSnap => {
+            const data = docSnap.data();
+            const displayName = data.userName || data.userEmail;
+            if (data.status === 'yes') yesList.push(displayName);
+            if (data.status === 'no') noList.push(displayName);
+
+            if (docSnap.id === userUid) {
+                myCurrentStatus = data.status;
+            }
+        });
+    } catch (err) {
+        console.error("Fehler beim Laden der Rückmeldungen:", err);
+    }
 
     contentBox.innerHTML = `
     <div style="display:flex; justify-content:space-between; align-items:center;">
     <h3 style="margin:0; color:var(--primary-dark);">Einladungsdetails</h3>
     <button class="small-btn btn-secondary" onclick="window.closeModal()" style="padding:2px 8px;">✕</button>
     </div>
-    <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
+
+    <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px; margin-top:12px;">
     <div><strong>Datum & Uhrzeit:</strong> ${inv.datetime || 'Nicht angegeben'}</div>
     <div><strong>Erstellt von:</strong> ${inv.createdBy || 'Unbekannt'}</div>
     <div><strong>Empfänger:</strong> ${inv.recipients ? inv.recipients.join(', ') : 'Keine'}</div>
     <div><strong>Hinweise:</strong> ${inv.details || 'Keine'}</div>
-    ${inv.updatedAt ? `<div style="color: var(--primary); font-size: 0.8rem; font-weight: 500;">⚡ Diese Einladung wurde im Nachhinein aktualisiert.</div>` : ''}
+    ${inv.updatedAt ? `<div style="color: var(--primary); font-size: 0.8rem; font-weight: 500;">⚡ Diese Einladung wurde aktualisiert.</div>` : ''}
     ${inv.mapsUrl ? `
         <div>
         <a href="${inv.mapsUrl}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:500; display:flex; align-items:center; gap:4px; text-decoration:underline;">
@@ -181,6 +293,27 @@ window.openInvitationModal = (invId) => {
         </a>
         </div>` : ''}
         </div>
+
+        <!-- RSVP FORMULAR / BUTTONS FÜR USER -->
+        <div style="border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
+        <strong>Deine Rückmeldung:</strong>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+        <button class="small-btn" id="rsvp-yes-btn" style="flex:1; background:${myCurrentStatus === 'yes' ? '#059669' : '#10b981'};">
+        ${myCurrentStatus === 'yes' ? '✓ Zugesagt' : 'Ich komme'}
+        </button>
+        <button class="small-btn delete-btn" id="rsvp-no-btn" style="flex:1; opacity:${myCurrentStatus === 'no' ? '1' : '0.8'};">
+        ${myCurrentStatus === 'no' ? '✕ Abgesagt' : 'Ich kann nicht'}
+        </button>
+        </div>
+        </div>
+
+        <!-- RÜCKMELDUNGEN (FÜR ALLER ODER ADMINS SICHTBAR) -->
+        <div style="border-top:1px solid var(--border); padding-top:12px; font-size:0.85rem;">
+        <strong>Teilnehmer-Status:</strong>
+        <div style="color: #059669; font-weight: 500; margin-top: 4px;">Zusagen (${yesList.length}): ${yesList.join(', ') || 'Keine'}</div>
+        <div style="color: var(--danger); font-weight: 500; margin-top: 2px;">Absagen (${noList.length}): ${noList.join(', ') || 'Keine'}</div>
+        </div>
+
         ${isAdmin ? `
             <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
             <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
@@ -188,7 +321,31 @@ window.openInvitationModal = (invId) => {
             </div>
             ` : ''}
             `;
+
+            // Event Listener für die Buttons setzen
+            document.getElementById('rsvp-yes-btn').onclick = () => window.submitRSVP(invId, 'yes');
+            document.getElementById('rsvp-no-btn').onclick = () => window.submitRSVP(invId, 'no');
+
             modal.classList.remove('hidden');
+};
+
+// Funktion zum Speichern der Zu- / Absage in Firestore
+window.submitRSVP = async (invId, status) => {
+    if (!auth.currentUser) return;
+    try {
+        const userRef = doc(db, `invitations/${invId}/responses`, auth.currentUser.uid);
+        await setDoc(userRef, {
+            userEmail: auth.currentUser.email,
+            userName: currentUserData?.name || auth.currentUser.email,
+            status: status,
+            updatedAt: serverTimestamp()
+        });
+
+        // Modal neu laden, um Änderungen sofort anzuzeigen
+        window.openInvitationModal(invId);
+    } catch (err) {
+        alert('Fehler beim Speichern der Rückmeldung: ' + err.message);
+    }
 };
 
 window.closeModal = () => {
