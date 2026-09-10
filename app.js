@@ -1076,3 +1076,8 @@ function renderAdminUsers() {
         container.appendChild(div);
     });
 }
+
+// Zusätzlicher Event-Listener für den Button "Neue Chats / Hauptchat wechseln" in der Seitenleiste
+document.getElementById('new-chat-btn')?.addEventListener('click', () => {
+    window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
+});

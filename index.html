@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hütten-Manager</title>
 
     <!-- CSS Dependencies -->
@@ -17,97 +17,121 @@
 
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1d4ed8;
-            --background: #f1f5f9;
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --primary-light: #e0e7ff;
+            --background: #f8fafc;
             --surface: #ffffff;
             --text: #0f172a;
             --text-muted: #64748b;
-            --border: #e2e8f0;
+            --border: #f1f5f9;
+            --border-strong: #cbd5e1;
             --danger: #ef4444;
             --success: #10b981;
-            --warning: #f59e0b;
+            --radius-sm: 8px;
+            --radius-md: 14px;
+            --radius-lg: 20px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--background); color: var(--text); padding-bottom: 70px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--background); color: var(--text); padding-bottom: 85px; -webkit-font-smoothing: antialiased; }
 
         /* Icons */
-        .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-        .icon-lg { width: 24px; height: 24px; }
+        .icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .icon-lg { width: 26px; height: 26px; }
         .icon-sm { width: 16px; height: 16px; }
 
-        /* Navigation */
-        nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); display: flex; justify-content: space-around; border-top: 1px solid var(--border); z-index: 1000; height: 60px; }
-        .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); width: 100%; font-size: 0.75rem; gap: 4px; cursor: pointer; }
-        .nav-btn.active { color: var(--primary); font-weight: 600; }
+        /* Mobile Bottom Navigation */
+        nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex; justify-content: space-around;
+            border-top: 1px solid var(--border-strong); z-index: 1000; height: 70px;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); width: 100%; font-size: 0.7rem; font-weight: 500; gap: 4px; cursor: pointer; transition: color 0.2s; }
+        .nav-btn.active { color: var(--primary); font-weight: 700; }
+        .nav-btn.active .icon { stroke: var(--primary); }
 
         /* Container & Cards */
-        .container { max-width: 800px; margin: 0 auto; padding: 16px; }
-        .card { background: var(--surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .container { max-width: 650px; margin: 0 auto; padding: 16px; }
+        .card { background: var(--surface); border-radius: var(--radius-md); padding: 20px; margin-bottom: 16px; border: 1px solid var(--border-strong); box-shadow: var(--shadow); }
         .hidden { display: none !important; }
 
+        /* Typography & Header */
+        h2 { font-size: 1.35rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+        h3 { font-size: 1.1rem; font-weight: 600; color: var(--text); }
+
         /* Auth */
-        .auth-container { max-width: 400px; margin: 40px auto; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
-        button.btn-primary { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
-        button.btn-secondary { background: #e2e8f0; color: var(--text); border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+        .auth-container { max-width: 420px; margin: 60px auto 0 auto; padding: 0 16px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+        input, select, textarea { width: 100%; padding: 12px 14px; background: var(--background); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); font-size: 1rem; color: var(--text); outline: none; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: var(--surface); }
+        button.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+        button.btn-primary:active { background: var(--primary-dark); }
+        button.btn-secondary { background: var(--background); color: var(--text); border: 1px solid var(--border-strong); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500; cursor: pointer; }
 
         /* Badges */
-        .badge-admin { background: #dbeafe; color: var(--primary-dark); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
-        .badge-user { background: #f1f5f9; color: var(--text-muted); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
-        .tag-badge { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; display: inline-block; margin: 2px; }
+        .badge-admin { background: #fee2e2; color: #991b1b; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-user { background: #e0f2fe; color: #0369a1; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .tag-badge { background: var(--primary-light); color: var(--primary-dark); padding: 3px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-block; margin: 2px; }
 
-        /* User Chips */
-        .chips-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-        .user-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; background: var(--surface); }
-        .user-chip.selected { border-color: var(--primary); background: #eff6ff; }
-        .user-chip-icon { width: 24px; height: 24px; border-radius: 50%; background: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
+        /* User Chips (Admin Invitation Screen) */
+        .chips-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; max-height: 160px; overflow-y: auto; padding: 4px; }
+        .user-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border-strong); border-radius: 20px; cursor: pointer; background: var(--surface); transition: all 0.2s; }
+        .user-chip.selected { border-color: var(--primary); background: var(--primary-light); }
+        .user-chip-icon { width: 24px; height: 24px; border-radius: 50%; background: var(--border-strong); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: var(--text); }
+        .user-chip.selected .user-chip-icon { background: var(--primary); color: white; }
         .user-chip-name { font-size: 0.85rem; font-weight: 500; }
-        .user-chip-email { font-size: 0.75rem; color: var(--text-muted); }
-
-        /* RSVP UI Status Lists */
-        .rsvp-list-section { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
-        .rsvp-group { border-radius: 8px; padding: 10px; font-size: 0.85rem; }
-        .rsvp-group-yes { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
-        .rsvp-group-no { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
-        .rsvp-group-pending { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-        .rsvp-user-tag { display: inline-block; background: rgba(255,255,255,0.7); border-radius: 12px; padding: 2px 8px; margin: 2px; font-weight: 500; font-size: 0.8rem; }
+        .user-chip-email { font-size: 0.7rem; color: var(--text-muted); }
 
         /* Map */
-        #map { height: 250px; width: 100%; border-radius: 8px; margin-top: 8px; }
+        #map { height: 220px; width: 100%; border-radius: var(--radius-sm); margin-top: 8px; border: 1px solid var(--border-strong); }
 
-        /* Chat Layout */
-        .chat-container { display: flex; height: calc(100vh - 150px); background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
-        .chat-sidebar { width: 260px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .chat-main { flex: 1; display: flex; flex-direction: column; }
-        .chat-room-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
-        .chat-room-item.active { background: #eff6ff; }
-        .room-avatar { width: 36px; height: 36px; border-radius: 50%; background: #cbd5e1; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .room-meta { overflow: hidden; }
-        .room-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
-        .room-sub { font-size: 0.75rem; color: var(--text-muted); }
+        /* Chat Layout (Mobile First Optimized) */
+        .chat-container { display: flex; height: calc(100vh - 130px); background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border-strong); overflow: hidden; box-shadow: var(--shadow); position: relative; }
+        .chat-sidebar { width: 100%; width: 320px; border-right: 1px solid var(--border-strong); display: flex; flex-direction: column; background: var(--surface); z-index: 2; transition: transform 0.3s ease; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; background: var(--background); height: 100%; }
 
-        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message-bubble { max-width: 70%; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; position: relative; }
-        .my-message { align-self: flex-end; background: var(--primary); color: white; }
-        .other-message { align-self: flex-start; background: #f1f5f9; color: var(--text); }
-        .msg-sender { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; }
+        .chat-sidebar-header { padding: 16px; border-bottom: 1px solid var(--border-strong); display: flex; justify-content: space-between; align-items: center; background: var(--surface); }
+
+        .chat-room-item { padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 12px; transition: background 0.15s; }
+        .chat-room-item:active { background: var(--background); }
+        .chat-room-item.active { background: var(--primary-light); border-left: 4px solid var(--primary); }
+        .room-avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--border-strong); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--text); flex-shrink: 0; }
+        .room-meta { overflow: hidden; flex: 1; }
+        .room-name { font-size: 0.95rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; color: var(--text); }
+        .room-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+
+        .chat-header-bar { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border-strong); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .message-bubble { max-width: 80%; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.95rem; position: relative; line-height: 1.4; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .my-message { align-self: flex-end; background: var(--primary); color: white; border-bottom-right-radius: 4px; }
+        .other-message { align-self: flex-start; background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-bottom-left-radius: 4px; }
+        .msg-sender { font-size: 0.75rem; font-weight: 600; color: var(--primary); margin-bottom: 3px; }
+        .other-message .msg-sender { color: var(--text-muted); }
         .msg-time { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; }
 
-        .chat-input-area { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+        .chat-input-area { padding: 12px; background: var(--surface); border-top: 1px solid var(--border-strong); display: flex; gap: 8px; align-items: center; }
 
         /* Modal */
-        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; }
-        .modal-box { background: white; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
-        .small-btn { padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer; background: var(--primary); color: white; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
+        .modal-box { background: white; border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
+
+        .small-btn { padding: 6px 12px; font-size: 0.8rem; border-radius: var(--radius-sm); border: none; cursor: pointer; background: var(--primary); color: white; font-weight: 600; transition: opacity 0.2s; }
+        .small-btn:active { opacity: 0.8; }
         .delete-btn { background: var(--danger); }
 
+        /* Responsive Breakpoints */
         @media (max-width: 768px) {
-            .chat-sidebar { width: 100%; }
-            .chat-main { display: none; width: 100%; }
+            .container { padding: 12px; }
+            .chat-container { height: calc(100vh - 125px); border-radius: 0; border: none; }
+            .chat-sidebar { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+            .chat-main { display: none; width: 100%; position: absolute; top: 0; left: 0; height: 100%; }
         }
     </style>
 </head>
@@ -115,28 +139,33 @@
 
     <!-- Auth Bereich -->
     <div id="auth-section" class="container auth-container">
-        <div class="card">
-            <h2 id="auth-title" style="margin-bottom: 16px;">Anmelden</h2>
+        <div class="card" style="padding: 28px;">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <h2 id="auth-title">Anmelden</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">Hütten-Manager Dangstetten</p>
+            </div>
+
             <div id="name-group" class="form-group" style="display: none;">
                 <label>Name</label>
-                <input type="text" id="auth-name" placeholder="Dein Name">
+                <input type="text" id="auth-name" placeholder="Dein Vorname">
             </div>
             <div class="form-group">
                 <label>E-Mail</label>
-                <input type="email" id="auth-email" placeholder="dein@email.de">
+                <input type="email" id="auth-email" placeholder="name@beispiel.de">
             </div>
             <div class="form-group">
                 <label>Passwort</label>
                 <input type="password" id="auth-password" placeholder="••••••••">
             </div>
-            <button id="auth-submit-btn" class="btn-primary" style="margin-bottom: 8px;">Anmelden</button>
-            <button id="google-login-btn" class="btn-secondary" style="width: 100%; margin-bottom: 16px;">Mit Google anmelden</button>
 
-            <p style="font-size: 0.85rem; text-align: center;">
-                <span id="auth-toggle-text">Noch keinen Account?</span>
-                <a href="#" id="auth-toggle-btn" style="color: var(--primary); font-weight: 600;">Registrieren</a>
-            </p>
-            <div id="auth-message" style="color: var(--danger); font-size: 0.85rem; margin-top: 8px; text-align: center;"></div>
+            <button id="auth-submit-btn" class="btn-primary" style="margin-bottom: 10px;">Anmelden</button>
+            <button id="google-login-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px;">Mit Google anmelden</button>
+
+            <div style="text-align: center; border-top: 1px solid var(--border); padding-top: 16px;">
+                <span id="auth-toggle-text" style="font-size: 0.85rem; color: var(--text-muted);">Noch keinen Account?</span>
+                <a href="#" id="auth-toggle-btn" style="color: var(--primary); font-weight: 600; font-size: 0.85rem; text-decoration: none; margin-left: 4px;">Registrieren</a>
+            </div>
+            <div id="auth-message" style="color: var(--danger); font-size: 0.85rem; margin-top: 12px; text-align: center; font-weight: 500;"></div>
         </div>
     </div>
 
@@ -145,23 +174,26 @@
 
         <!-- Tab 1: Einladungen -->
         <div id="tab-invite-content" class="container">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 4px;">
                 <div>
-                    <h2>Hütten-Einladungen</h2>
-                    <span id="user-display-name" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+                    <h2>Einladungen</h2>
+                    <span id="user-display-name" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;"></span>
                 </div>
                 <span id="user-role-badge" class="badge-user">User</span>
             </header>
 
             <!-- Admin Editor -->
             <div id="admin-invite-creator-card" class="card hidden">
-                <h3 style="margin-bottom: 12px;">Neue Einladung erstellen</h3>
+                <h3 style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Neue Einladung erstellen
+                </h3>
 
                 <div class="form-group">
                     <label>Empfänger auswählen</label>
                     <div style="display: flex; gap: 8px; margin-bottom: 6px;">
-                        <button type="button" class="small-btn btn-secondary" id="select-all-btn">Alle auswählen</button>
-                        <button type="button" class="small-btn btn-secondary" id="deselect-all-btn">Auswahl aufheben</button>
+                        <button type="button" class="small-btn btn-secondary" id="select-all-btn" style="flex:1;">Alle auswählen</button>
+                        <button type="button" class="small-btn btn-secondary" id="deselect-all-btn" style="flex:1;">Auswahl aufheben</button>
                     </div>
                     <div id="user-chips" class="chips-container"></div>
                 </div>
@@ -192,43 +224,61 @@
                     <div id="map"></div>
                 </div>
 
-                <button id="send-invite-btn" class="btn-primary" style="margin-top: 12px;">Einladung senden</button>
+                <button id="send-invite-btn" class="btn-primary" style="margin-top: 8px;">Einladung senden</button>
             </div>
 
             <!-- Einladungsliste -->
-            <h3 style="margin: 16px 0 8px 0;">Deine Einladungen</h3>
+            <h3 style="margin: 20px 0 12px 4px;">Aktive Einladungen</h3>
             <div id="invitations-list"></div>
         </div>
 
         <!-- Tab 2: Chat -->
-        <div id="tab-chat-content" class="container hidden">
+        <div id="tab-chat-content" class="container hidden" style="padding: 12px;">
             <div class="chat-container">
+                <!-- Chat Sidebar (Enthält Button für neue Chats & Chat-Einstellungen / Liste) -->
                 <div id="chat-sidebar" class="chat-sidebar">
-                    <div style="padding: 12px; border-bottom: 1px solid var(--border); font-weight: bold;">Kanäle & Chats</div>
+                    <div class="chat-sidebar-header">
+                        <span style="font-weight: 700; font-size: 1rem;">Chats & Kanäle</span>
+                        <!-- Button für neue Chats / Aktionen -->
+                        <button id="new-chat-btn" class="small-btn" style="display: flex; align-items: center; gap: 4px;" title="Neuer Chat / Kanal">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Neu
+                        </button>
+                    </div>
                     <div id="chat-rooms-list" style="flex: 1; overflow-y: auto;"></div>
                 </div>
+
+                <!-- Chat Hauptfenster -->
                 <div id="chat-main" class="chat-main">
-                    <div style="padding: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <button id="mobile-back-btn" class="small-btn btn-secondary" style="display: none;">←</button>
-                            <div id="active-chat-avatar" class="room-avatar"></div>
-                            <div>
-                                <div id="active-chat-title" style="font-weight: bold; font-size: 0.95rem;">Chat</div>
-                                <div id="active-chat-sub" style="font-size: 0.75rem; color: var(--text-muted);">...</div>
+                    <div class="chat-header-bar">
+                        <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                            <button id="mobile-back-btn" class="small-btn btn-secondary" style="display: none; padding: 6px 10px;">
+                                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <div id="active-chat-avatar" class="room-avatar" style="width: 36px; height: 36px; font-size: 0.85rem;"></div>
+                            <div style="overflow: hidden;">
+                                <div id="active-chat-title" style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Chat</div>
+                                <div id="active-chat-sub" style="font-size: 0.7rem; color: var(--text-muted);">...</div>
                             </div>
                         </div>
-                        <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden">⚙️</button>
+                        <!-- Chat Einstellungen Button (Zahnräder für Admin/Tag-Settings) -->
+                        <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden" style="padding: 6px 10px;" title="Chat-Einstellungen">
+                            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
                     </div>
 
-                    <div id="chat-settings-panel" class="hidden" style="padding: 12px; background: #f8fafc; border-bottom: 1px solid var(--border);">
+                    <!-- Chat Settings Dropdown / Panel -->
+                    <div id="chat-settings-panel" class="hidden" style="padding: 12px; background: var(--background); border-bottom: 1px solid var(--border-strong);">
                         <div id="group-settings-content"></div>
                     </div>
 
                     <div id="chat-messages" class="chat-messages"></div>
 
                     <div class="chat-input-area">
-                        <input type="text" id="chat-input" placeholder="Nachricht schreiben...">
-                        <button id="chat-send-btn" class="btn-primary" style="width: auto; padding: 0 16px;">Senden</button>
+                        <input type="text" id="chat-input" placeholder="Nachricht schreiben..." style="border-radius: 20px;">
+                        <button id="chat-send-btn" class="btn-primary" style="width: auto; border-radius: 20px; padding: 10px 18px;">
+                            <svg class="icon icon-sm" style="stroke: white;" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -237,54 +287,54 @@
         <!-- Tab 3: Profil & Admin -->
         <div id="tab-profile-content" class="container hidden">
             <div class="card">
-                <h3>Mein Profil</h3>
-                <p style="margin-top: 8px; font-size: 0.9rem;">Angemeldet als: <strong id="header-user-badge"></strong></p>
-                <div style="margin-top: 8px;">Gruppen: <span id="user-profile-tags"></span></div>
+                <h3>Dein Profil</h3>
+                <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Angemeldet als: <strong id="header-user-badge" style="color: var(--text);"></strong></p>
+                <div style="margin-top: 10px; font-size: 0.9rem;">Zugewiesene Gruppen: <div id="user-profile-tags" style="margin-top: 6px;"></div></div>
 
-                <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
-                    <label style="font-size: 0.85rem; font-weight: 600;">E-Mail ändern</label>
-                    <div style="display: flex; gap: 8px; margin-top: 4px;">
-                        <input type="email" id="new-email-input" placeholder="Neue E-Mail">
-                        <button id="change-email-btn" class="small-btn">Speichern</button>
+                <div style="margin-top: 20px; border-top: 1px solid var(--border-strong); padding-top: 16px;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">E-MAIL ÄNDERN</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
+                        <button id="change-email-btn" class="small-btn" style="flex-shrink: 0;">Speichern</button>
                     </div>
-                    <div id="email-change-msg" style="font-size: 0.8rem; margin-top: 4px;"></div>
+                    <div id="email-change-msg" style="font-size: 0.8rem; margin-top: 6px; font-weight: 500;"></div>
                 </div>
 
-                <button id="logout-btn" class="btn-secondary" style="width: 100%; margin-top: 16px; color: var(--danger);">Abmelden</button>
+                <button id="logout-btn" class="btn-secondary" style="width: 100%; margin-top: 20px; color: var(--danger); border-color: #fee2e2; background: #fef2f2;">Abmelden</button>
             </div>
 
             <!-- Admin Einstellungen -->
             <div id="admin-section" class="card hidden">
-                <h3>Admin-Verwaltung</h3>
+                <h3 style="margin-bottom: 14px;">Admin-Verwaltung</h3>
 
-                <h4 style="margin-top: 12px; font-size: 0.9rem;">Nutzerverwaltung</h4>
-                <div id="admin-user-list" style="margin-top: 8px;"></div>
+                <h4 style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 8px;">Nutzer & Rollen</h4>
+                <div id="admin-user-list"></div>
 
-                <h4 style="margin-top: 16px; font-size: 0.9rem;">Gruppen / Tags erstellen</h4>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <h4 style="font-size: 0.9rem; color: var(--text-muted); margin: 20px 0 8px 0;">Gruppen / Tags erstellen</h4>
+                <div style="display: flex; gap: 8px;">
                     <input type="text" id="new-tag-name-input" placeholder="Gruppenname (z.B. Orga)">
-                    <button id="create-tag-btn" class="small-btn">Erstellen</button>
+                    <button id="create-tag-btn" class="small-btn" style="flex-shrink: 0;">Erstellen</button>
                 </div>
-                <div id="admin-tags-list" style="margin-top: 8px;"></div>
+                <div id="admin-tags-list" style="margin-top: 10px;"></div>
 
-                <h4 style="margin-top: 16px; font-size: 0.9rem;">Vorlagen verwalten</h4>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <h4 style="font-size: 0.9rem; color: var(--text-muted); margin: 20px 0 8px 0;">Nachrichten-Vorlagen</h4>
+                <div style="display: flex; gap: 8px;">
                     <input type="text" id="template-name-input" placeholder="Name der Vorlage">
-                    <button id="save-template-btn" class="small-btn">Aktuellen Text speichern</button>
+                    <button id="save-template-btn" class="small-btn" style="flex-shrink: 0;">Aktuellen Text speichern</button>
                 </div>
 
-                <h4 style="margin-top: 16px; font-size: 0.9rem;">Orte verwalten</h4>
-                <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <input type="text" id="location-name-input" placeholder="Name für aktuelle Kartenposition">
-                    <button id="save-location-btn" class="small-btn">Ort Speichern</button>
+                <h4 style="font-size: 0.9rem; color: var(--text-muted); margin: 20px 0 8px 0;">Standorte / Orte</h4>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="location-name-input" placeholder="Name für aktuellen Karten-Pin">
+                    <button id="save-location-btn" class="small-btn" style="flex-shrink: 0;">Ort Speichern</button>
                 </div>
-                <div id="saved-locations-management-list" style="margin-top: 8px;"></div>
+                <div id="saved-locations-management-list" style="margin-top: 10px;"></div>
             </div>
         </div>
 
     </div>
 
-    <!-- Navigation -->
+    <!-- Navigation Bar -->
     <nav>
         <button id="nav-invite-btn" class="nav-btn active">
             <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
