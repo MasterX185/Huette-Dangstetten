@@ -1,0 +1,11 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.github.masterx185.huette",
+    "sha256_cert_fingerprints": [
+      "DEIN:SHA256:43:A7:11:C9:12:2D:6D:3A:67:EF:6B:1E:46:69:83:F1:D0:EC:D3:7B:84:BA:09:EB:B5:35:9A:CB:49:79:B2:91
+"
+    ]
+  }
+}]
