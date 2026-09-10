@@ -15,9 +15,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-    <!-- Manifest -->
-    <link rel="manifest" href="manifest.json">
-
     <style>
         :root {
             --primary: #4f46e5;
@@ -91,8 +88,21 @@
         .user-chip-name { font-size: 0.85rem; font-weight: 500; }
         .user-chip-email { font-size: 0.7rem; color: var(--text-muted); }
 
-        /* Map */
-        #map { height: 220px; width: 100%; border-radius: var(--radius-sm); margin-top: 8px; border: 1px solid var(--border-strong); }
+        /* Map & Central Crosshair Overlay */
+        .map-wrapper { position: relative; width: 100%; margin-top: 8px; }
+        #map { height: 220px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); }
+        .map-crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.4));
+        }
 
         /* Chat Layout (Mobile First Optimized) */
         .chat-container { display: flex; height: calc(100vh - 130px); background: var(--surface); border-radius: var(--radius-md); border: 1px solid var(--border-strong); overflow: hidden; box-shadow: var(--shadow); position: relative; }
@@ -161,6 +171,11 @@
                 <input type="password" id="auth-password" placeholder="••••••••">
             </div>
 
+            <!-- Passwort vergessen Button/Link -->
+            <div id="forgot-password-container" style="text-align: right; margin-top: -6px; margin-bottom: 14px;">
+                <a href="#" id="forgot-password-btn" style="color: var(--primary); font-size: 0.8rem; font-weight: 600; text-decoration: none;">Passwort vergessen?</a>
+            </div>
+
             <button id="auth-submit-btn" class="btn-primary" style="margin-bottom: 10px;">Anmelden</button>
             <button id="google-login-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px;">Mit Google anmelden</button>
 
@@ -224,7 +239,20 @@
                 <div class="form-group">
                     <label>Standort auf Karte wählen</label>
                     <select id="location-select"><option value="custom">-- Eigene Karten-Pin verwenden --</option></select>
-                    <div id="map"></div>
+                    <div class="map-wrapper">
+                        <div id="map"></div>
+                        <!-- Centered Crosshair Marker Overlay -->
+                        <div class="map-crosshair" title="Kartenmitte (Standort-Auswahl)">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="5" />
+                                <line x1="12" y1="2" x2="12" y2="7" />
+                                <line x1="12" y1="17" x2="12" y2="22" />
+                                <line x1="2" y1="12" x2="7" y2="12" />
+                                <line x1="17" y1="12" x2="22" y2="12" />
+                                <circle cx="12" cy="12" r="1.5" fill="var(--danger)" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
                 <button id="send-invite-btn" class="btn-primary" style="margin-top: 8px;">Einladung senden</button>
@@ -238,11 +266,10 @@
         <!-- Tab 2: Chat -->
         <div id="tab-chat-content" class="container hidden" style="padding: 12px;">
             <div class="chat-container">
-                <!-- Chat Sidebar (Enthält Button für neue Chats & Chat-Einstellungen / Liste) -->
+                <!-- Chat Sidebar -->
                 <div id="chat-sidebar" class="chat-sidebar">
                     <div class="chat-sidebar-header">
                         <span style="font-weight: 700; font-size: 1rem;">Chats & Kanäle</span>
-                        <!-- Button für neue Chats / Aktionen -->
                         <button id="new-chat-btn" class="small-btn" style="display: flex; align-items: center; gap: 4px;" title="Neuer Chat / Kanal">
                             <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Neu
@@ -264,7 +291,6 @@
                                 <div id="active-chat-sub" style="font-size: 0.7rem; color: var(--text-muted);">...</div>
                             </div>
                         </div>
-                        <!-- Chat Einstellungen Button (Zahnräder für Admin/Tag-Settings) -->
                         <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden" style="padding: 6px 10px;" title="Chat-Einstellungen">
                             <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         </button>
@@ -358,7 +384,7 @@
         <div id="modal-content-box" class="modal-box"></div>
     </div>
 
-        <!-- Modal für neuen Chat / Kanal -->
+    <!-- Modal für neuen Chat / Kanal -->
     <div id="new-chat-modal" class="modal-overlay hidden">
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center;">
