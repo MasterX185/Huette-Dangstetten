@@ -2,7 +2,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
-    signInWithPopup, signInWithRedirect, getRedirectResult
+    signInWithPopup, signInWithRedirect, getRedirectResult,
+    sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
@@ -38,49 +39,6 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 
-
-
-// 1. Service Worker registrieren
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker aktiv:', reg.scope))
-            .catch(err => console.error('Service Worker Fehler:', err));
-    });
-}
-
-// 2. Installations-Prompt abfangen & Button steuern
-let deferredPrompt;
-const installBtn = document.getElementById('pwa-install-btn'); // Dein Button-Element
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    // Verhindert das automatische Standard-Banner des Browsers
-    e.preventDefault();
-    deferredPrompt = e;
-
-    // Zeige deinen benutzerdefinierten Install-Button an
-    if (installBtn) {
-        installBtn.style.display = 'block';
-    }
-});
-
-// 3. Klick-Event für den Install-Button
-installBtn?.addEventListener('click', async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-        console.log('User hat die App-Installation akzeptiert');
-    }
-    deferredPrompt = null;
-    installBtn.style.display = 'none';
-});
-
-
-
-// RSVP-Handler für eingehende Links aus der E-Mail
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const invId = urlParams.get('rsvp_inv');
@@ -135,14 +93,13 @@ function stopAllListeners() {
     activeUnsubscribes.forEach(unsub => {
         if (typeof unsub === 'function') unsub();
     });
-        activeUnsubscribes = [];
-        if (activeChatUnsubscribe) {
-            activeChatUnsubscribe();
-            activeChatUnsubscribe = null;
-        }
+    activeUnsubscribes = [];
+    if (activeChatUnsubscribe) {
+        activeChatUnsubscribe();
+        activeChatUnsubscribe = null;
+    }
 }
 
-// Global Window Functions
 window.toggleUserTag = async (uid, tagName, add) => {
     if (!currentUserData || currentUserData.role !== 'admin') return;
     const userObj = usersList.find(u => u.id === uid);
@@ -349,7 +306,6 @@ function resetSendButtonToCreate() {
     sendBtn.onclick = createNewInvitation;
 }
 
-// DOM Elements
 const authSection = document.getElementById('auth-section');
 const appSection = document.getElementById('app-section');
 const authTitle = document.getElementById('auth-title');
@@ -362,6 +318,8 @@ const googleLoginBtn = document.getElementById('google-login-btn');
 const authToggleBtn = document.getElementById('auth-toggle-btn');
 const authToggleText = document.getElementById('auth-toggle-text');
 const authMessage = document.getElementById('auth-message');
+const forgotPasswordBtn = document.getElementById('forgot-password-btn');
+const forgotPasswordContainer = document.getElementById('forgot-password-container');
 
 const navInviteBtn = document.getElementById('nav-invite-btn');
 const navChatBtn = document.getElementById('nav-chat-btn');
@@ -405,6 +363,9 @@ authToggleBtn.addEventListener('click', () => {
     authTitle.innerText = isRegistering ? 'Registrieren' : 'Anmelden';
     authSubmitBtn.innerText = isRegistering ? 'Account erstellen' : 'Anmelden';
     nameGroup.style.display = isRegistering ? 'block' : 'none';
+    if (forgotPasswordContainer) {
+        forgotPasswordContainer.style.display = isRegistering ? 'none' : 'block';
+    }
     authToggleText.innerText = isRegistering ? 'Bereits einen Account?' : 'Noch keinen Account?';
     authToggleBtn.innerText = isRegistering ? 'Anmelden' : 'Registrieren';
     authMessage.innerText = '';
@@ -415,6 +376,7 @@ authSubmitBtn.addEventListener('click', async () => {
     const password = authPassword.value;
     const name = authName.value.trim();
     authMessage.innerText = '';
+    authMessage.style.color = 'var(--danger)';
 
     if (!email || !password) {
         authMessage.innerText = 'Bitte E-Mail und Passwort eingeben.';
@@ -434,8 +396,33 @@ authSubmitBtn.addEventListener('click', async () => {
     }
 });
 
+// Passwort vergessen Handler mit Firebase Auth sendPasswordResetEmail
+if (forgotPasswordBtn) {
+    forgotPasswordBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const email = authEmail.value.trim();
+        authMessage.innerText = '';
+
+        if (!email) {
+            authMessage.style.color = 'var(--danger)';
+            authMessage.innerText = 'Bitte gib zuerst deine E-Mail-Adresse in das E-Mail-Feld ein.';
+            return;
+        }
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            authMessage.style.color = 'var(--success)';
+            authMessage.innerText = 'E-Mail zum Zurücksetzen des Passworts wurde versendet! Bitte prüfe deinen Posteingang.';
+        } catch (error) {
+            authMessage.style.color = 'var(--danger)';
+            authMessage.innerText = 'Fehler beim Senden: ' + error.message;
+        }
+    });
+}
+
 googleLoginBtn.addEventListener('click', async () => {
     authMessage.innerText = '';
+    authMessage.style.color = 'var(--danger)';
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
@@ -1006,25 +993,25 @@ window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
         else el.classList.remove('active');
     });
 
-        const settingsBtn = document.getElementById('toggle-chat-settings-btn');
-        const settingsPanel = document.getElementById('chat-settings-panel');
-        settingsPanel.classList.add('hidden');
+    const settingsBtn = document.getElementById('toggle-chat-settings-btn');
+    const settingsPanel = document.getElementById('chat-settings-panel');
+    settingsPanel.classList.add('hidden');
 
-        if (roomId.startsWith('tag_')) {
-            const tagName = roomId.replace('tag_', '');
-            if (currentUserData && currentUserData.role === 'admin') {
-                settingsBtn.classList.remove('hidden');
-                setupTagSettingsPanel(tagName);
-            } else {
-                settingsBtn.classList.add('hidden');
-            }
+    if (roomId.startsWith('tag_')) {
+        const tagName = roomId.replace('tag_', '');
+        if (currentUserData && currentUserData.role === 'admin') {
+            settingsBtn.classList.remove('hidden');
+            setupTagSettingsPanel(tagName);
         } else {
             settingsBtn.classList.add('hidden');
         }
+    } else {
+        settingsBtn.classList.add('hidden');
+    }
 
-        if (activeChatUnsubscribe) activeChatUnsubscribe();
+    if (activeChatUnsubscribe) activeChatUnsubscribe();
 
-        const q = query(collection(db, `chats/${roomId}/messages`), orderBy("createdAt", "asc"));
+    const q = query(collection(db, `chats/${roomId}/messages`), orderBy("createdAt", "asc"));
     activeChatUnsubscribe = onSnapshot(q, (snapshot) => {
         const container = document.getElementById('chat-messages');
         container.innerHTML = snapshot.empty ? '<em>Noch keine Nachrichten in diesem Kanal.</em>' : '';
@@ -1119,8 +1106,6 @@ function renderAdminUsers() {
     });
 }
 
-// Zusätzlicher Event-Listener für den Button "Neue Chats / Hauptchat wechseln" in der Seitenleiste
-// Öffnet das Modal zur Chat-Erstellung und befüllt die Nutzerliste
 document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     const modal = document.getElementById('new-chat-modal');
     const userListContainer = document.getElementById('new-chat-user-list');
@@ -1130,14 +1115,12 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
 
     userListContainer.innerHTML = '';
 
-    // Admin-Bereich einblenden falls Admin
     if (currentUserData && currentUserData.role === 'admin') {
         adminSection?.classList.remove('hidden');
     } else {
         adminSection?.classList.add('hidden');
     }
 
-    // Nutzer-Auswahl für DMs generieren
     usersList.forEach(u => {
         if (u.email !== auth.currentUser.email) {
             const item = document.createElement('div');
@@ -1163,7 +1146,6 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
     modal.classList.remove('hidden');
 });
 
-// Admin Schnell-Erstellung aus dem Modal heraus
 document.getElementById('modal-create-tag-btn')?.addEventListener('click', async () => {
     if (!currentUserData || currentUserData.role !== 'admin') return;
     const input = document.getElementById('modal-new-tag-input');
