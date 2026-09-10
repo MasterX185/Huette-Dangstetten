@@ -1,0 +1,15 @@
+{
+  "name": "Hütten-Manager",
+  "short_name": "Hütte",
+  "start_url": "https://masterx185.github.io/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
