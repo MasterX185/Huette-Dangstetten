@@ -2,22 +2,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
-    signInWithPopup, signInWithRedirect, getRedirectResult, getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
-    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs
+    signInWithPopup, signInWithRedirect, getRedirectResult
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
-    query, orderBy, serverTimestamp, deleteDoc, updateDoc
+    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // Initialize EmailJS
 emailjs.init("CFQLo5C6SDyav2WuP");
 
-const keyPart1 = "AIzaSyCLhOlcwKeqtdNNF_";
-const keyPart2 = "HrFA0xavgOgZjHMPw";
-
 const firebaseConfig = {
-    apiKey: keyPart1 + keyPart2,
+    apiKey: "AIzaSyCLhOlcwKeqtdNNF_HrFA0xavgOgZjHMPw",
     authDomain: "huette-dangstetten-3a737.firebaseapp.com",
     projectId: "huette-dangstetten-3a737",
     storageBucket: "huette-dangstetten-3a737.firebasestorage.app",
@@ -42,12 +38,11 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 
-
 // RSVP-Handler für eingehende Links aus der E-Mail
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const invId = urlParams.get('rsvp_inv');
-    const status = urlParams.get('rsvp_status'); // 'yes' oder 'no'
+    const status = urlParams.get('rsvp_status');
 
     if (invId && status && auth.currentUser) {
         try {
@@ -55,11 +50,10 @@ async function handleRSVPFromURL() {
             await setDoc(rsvpRef, {
                 userEmail: auth.currentUser.email,
                 userName: currentUserData?.name || auth.currentUser.email,
-                status: status, // 'yes' oder 'no'
+                status: status,
                 respondedAt: serverTimestamp()
             });
 
-            // URL bereinigen, damit der Parameter nach dem Laden verschwindet
             window.history.replaceState({}, document.title, window.location.pathname);
             alert(status === 'yes' ? 'Vielen Dank! Deine Zusage wurde gespeichert.' : 'Schade! Deine Absage wurde gespeichert.');
         } catch (err) {
@@ -68,70 +62,6 @@ async function handleRSVPFromURL() {
     }
 }
 
-// Ergänze handleRSVPFromURL() innerhalb von onAuthStateChanged
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        currentUserData = await ensureUserDocument(user);
-        authSection.classList.add('hidden');
-        appSection.classList.remove('hidden');
-        updateUIForCurrentUser();
-        initApp();
-        await handleRSVPFromURL(); // <--- Hier einfügen
-    } else {
-        // ...
-    }
-});
-
-// Aktualisiere openInvitationModal, um Admins die Zu-/Absagen anzuzeigen
-const originalOpenModal = window.openInvitationModal;
-window.openInvitationModal = async (invId) => {
-    const inv = invitationsCache[invId];
-    if (!inv) return;
-
-    // Antworten aus Firestore abrufen
-    const responsesSnap = await getDocs(collection(db, `invitations/${invId}/responses`));
-    let yesList = [];
-    let noList = [];
-
-    responsesSnap.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.status === 'yes') yesList.push(data.userName || data.userEmail);
-        if (data.status === 'no') noList.push(data.userName || data.userEmail);
-    });
-
-        const modal = document.getElementById('invitation-modal');
-        const contentBox = document.getElementById('modal-content-box');
-        const isAdmin = currentUserData && currentUserData.role === 'admin';
-
-        contentBox.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0; color:var(--primary-dark);">Einladungsdetails</h3>
-        <button class="small-btn btn-secondary" onclick="window.closeModal()" style="padding:2px 8px;">✕</button>
-        </div>
-        <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px;">
-        <div><strong>Datum & Uhrzeit:</strong> ${inv.datetime || 'Nicht angegeben'}</div>
-        <div><strong>Erstellt von:</strong> ${inv.createdBy || 'Unbekannt'}</div>
-        <div><strong>Hinweise:</strong> ${inv.details || 'Keine'}</div>
-
-        <div style="border-top: 1px solid var(--border); padding-top: 8px; margin-top: 4px;">
-        <strong>Status / Rückmeldungen:</strong>
-        <div style="color: #10b981; font-weight: 500; margin-top: 4px;">Zusagen (${yesList.length}): ${yesList.join(', ') || 'Keine'}</div>
-        <div style="color: var(--danger); font-weight: 500; margin-top: 2px;">Absagen (${noList.length}): ${noList.join(', ') || 'Keine'}</div>
-        </div>
-        </div>
-        ${isAdmin ? `
-            <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-            <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
-            <button class="small-btn" onclick="window.startEditingInvitation('${invId}')">Bearbeiten & Neu senden</button>
-            </div>` : ''}
-            `;
-            modal.classList.remove('hidden');
-};
-
-
-/**
- * Garantiert, dass für einen Nutzer ein Firestore-Dokument existiert.
- */
 async function ensureUserDocument(user) {
     if (!user) return null;
     const userRef = doc(db, "users", user.uid);
@@ -150,7 +80,6 @@ async function ensureUserDocument(user) {
     return userDoc.data();
 }
 
-// Redirect-Ergebnis nach Google-Login verarbeiten (falls Redirect genutzt wurde)
 getRedirectResult(auth).then(async (result) => {
     if (result && result.user) {
         await ensureUserDocument(result.user);
@@ -160,7 +89,6 @@ getRedirectResult(auth).then(async (result) => {
     if (authMessage) authMessage.innerText = 'Google-Login Fehler: ' + error.message;
 });
 
-// Beendet alle aktiven Firestore-Snapshots
 function stopAllListeners() {
     activeUnsubscribes.forEach(unsub => {
         if (typeof unsub === 'function') unsub();
@@ -172,7 +100,7 @@ function stopAllListeners() {
         }
 }
 
-// Global Window-Funktionen für HTML Onclick Handlers
+// Global Window Functions
 window.toggleUserTag = async (uid, tagName, add) => {
     if (!currentUserData || currentUserData.role !== 'admin') return;
     const userObj = usersList.find(u => u.id === uid);
@@ -252,7 +180,6 @@ window.openInvitationModal = async (invId) => {
     const isAdmin = currentUserData && currentUserData.role === 'admin';
     const userUid = auth.currentUser ? auth.currentUser.uid : null;
 
-    // Antworten aus der Subcollection 'responses' live / aktuell abrufen
     let yesList = [];
     let noList = [];
     let myCurrentStatus = null;
@@ -294,7 +221,6 @@ window.openInvitationModal = async (invId) => {
         </div>` : ''}
         </div>
 
-        <!-- RSVP FORMULAR / BUTTONS FÜR USER -->
         <div style="border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
         <strong>Deine Rückmeldung:</strong>
         <div style="display:flex; gap:10px; margin-top:8px;">
@@ -307,7 +233,6 @@ window.openInvitationModal = async (invId) => {
         </div>
         </div>
 
-        <!-- RÜCKMELDUNGEN (FÜR ALLER ODER ADMINS SICHTBAR) -->
         <div style="border-top:1px solid var(--border); padding-top:12px; font-size:0.85rem;">
         <strong>Teilnehmer-Status:</strong>
         <div style="color: #059669; font-weight: 500; margin-top: 4px;">Zusagen (${yesList.length}): ${yesList.join(', ') || 'Keine'}</div>
@@ -318,18 +243,15 @@ window.openInvitationModal = async (invId) => {
             <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
             <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
             <button class="small-btn" onclick="window.startEditingInvitation('${invId}')">Bearbeiten & Neu senden</button>
-            </div>
-            ` : ''}
+            </div>` : ''}
             `;
 
-            // Event Listener für die Buttons setzen
             document.getElementById('rsvp-yes-btn').onclick = () => window.submitRSVP(invId, 'yes');
             document.getElementById('rsvp-no-btn').onclick = () => window.submitRSVP(invId, 'no');
 
             modal.classList.remove('hidden');
 };
 
-// Funktion zum Speichern der Zu- / Absage in Firestore
 window.submitRSVP = async (invId, status) => {
     if (!auth.currentUser) return;
     try {
@@ -341,7 +263,6 @@ window.submitRSVP = async (invId, status) => {
             updatedAt: serverTimestamp()
         });
 
-        // Modal neu laden, um Änderungen sofort anzuzeigen
         window.openInvitationModal(invId);
     } catch (err) {
         alert('Fehler beim Speichern der Rückmeldung: ' + err.message);
@@ -373,7 +294,7 @@ window.startEditingInvitation = (invId) => {
     renderUserChips();
 
     const sendBtn = document.getElementById('send-invite-btn');
-    sendBtn.innerText = "Änderungen speichern & aktualisiert über GMX senden";
+    sendBtn.innerText = "Änderungen speichern & aktualisiert senden";
     sendBtn.onclick = () => window.updateAndResendInvitation(invId);
 
     document.getElementById('nav-invite-btn').click();
@@ -382,11 +303,11 @@ window.startEditingInvitation = (invId) => {
 
 function resetSendButtonToCreate() {
     const sendBtn = document.getElementById('send-invite-btn');
-    sendBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg> Einladung personalisiert über GMX senden`;
+    sendBtn.innerHTML = `Einladung senden`;
     sendBtn.onclick = createNewInvitation;
 }
 
-// DOM Elemente
+// DOM Elements
 const authSection = document.getElementById('auth-section');
 const appSection = document.getElementById('app-section');
 const authTitle = document.getElementById('auth-title');
@@ -447,7 +368,6 @@ authToggleBtn.addEventListener('click', () => {
     authMessage.innerText = '';
 });
 
-// Authentifizierung per E-Mail & Passwort
 authSubmitBtn.addEventListener('click', async () => {
     const email = authEmail.value.trim();
     const password = authPassword.value;
@@ -472,7 +392,6 @@ authSubmitBtn.addEventListener('click', async () => {
     }
 });
 
-// Authentifizierung per Google Login (Popup mit Fallback auf Redirect)
 googleLoginBtn.addEventListener('click', async () => {
     authMessage.innerText = '';
     const provider = new GoogleAuthProvider();
@@ -494,16 +413,14 @@ googleLoginBtn.addEventListener('click', async () => {
     }
 });
 
-// Statusänderung des Benutzers verwalten
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         currentUserData = await ensureUserDocument(user);
-
         authSection.classList.add('hidden');
         appSection.classList.remove('hidden');
-
         updateUIForCurrentUser();
         initApp();
+        await handleRSVPFromURL();
     } else {
         currentUserData = null;
         stopAllListeners();
@@ -530,9 +447,7 @@ function updateUIForCurrentUser() {
 
     const adminElements = [
         document.getElementById('admin-section'),
-        document.getElementById('admin-tags-section'),
-        document.getElementById('admin-invite-creator-card'),
-        document.getElementById('admin-locations-manager-card')
+        document.getElementById('admin-invite-creator-card')
     ];
 
     adminElements.forEach(el => {
@@ -542,12 +457,7 @@ function updateUIForCurrentUser() {
         }
     });
 
-    document.querySelectorAll('.admin-only-element').forEach(el => {
-        if (isAdmin) el.classList.remove('hidden');
-        else el.classList.add('hidden');
-    });
-
-        renderProfileTags();
+    renderProfileTags();
 }
 
 document.getElementById('change-email-btn').addEventListener('click', async () => {
@@ -727,7 +637,7 @@ function renderAdminTags() {
         div.className = 'card';
         div.style.padding = '8px 12px';
         div.style.marginBottom = '6px';
-        div.style.flexDirection = 'row';
+        div.style.display = 'flex';
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
         div.innerHTML = `
@@ -788,7 +698,7 @@ function loadLocations() {
             savedLocations.forEach(loc => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'card';
-                itemDiv.style.flexDirection = 'row';
+                itemDiv.style.display = 'flex';
                 itemDiv.style.justifyContent = 'space-between';
                 itemDiv.style.alignItems = 'center';
                 itemDiv.style.padding = '10px 14px';
@@ -948,6 +858,7 @@ function loadInvitations() {
                 count++;
                 const card = document.createElement('div');
                 card.className = 'card invitation-card';
+                card.style.cursor = 'pointer';
                 card.onclick = () => window.openInvitationModal(invId);
                 card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">

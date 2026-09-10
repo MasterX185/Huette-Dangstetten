@@ -2,638 +2,301 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hütte Dangstetten - Portal & Chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hütten-Manager</title>
 
-    <!-- Flatpickr & Leaflet CSS -->
+    <!-- CSS Dependencies -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+    <!-- JS Dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/de.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
     <style>
         :root {
-            --primary: #0f766e;
-            --primary-dark: #115e59;
-            --primary-light: #ccfbf1;
-            --bg-body: #f8fafc;
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --background: #f1f5f9;
             --surface: #ffffff;
-            --text-main: #1e293b;
+            --text: #0f172a;
             --text-muted: #64748b;
             --border: #e2e8f0;
             --danger: #ef4444;
-            --danger-bg: #fee2e2;
-            --radius: 12px;
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --success: #10b981;
         }
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--background); color: var(--text); padding-bottom: 70px; }
 
-        body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+        /* Icons */
+        .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+        .icon-lg { width: 24px; height: 24px; }
+        .icon-sm { width: 16px; height: 16px; }
 
-        .container {
-            background: var(--surface);
-            width: 100%;
-            max-width: 1100px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            box-shadow: var(--shadow);
-        }
+        /* Navigation */
+        nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); display: flex; justify-content: space-around; border-top: 1px solid var(--border); z-index: 1000; height: 60px; }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; background: none; border: none; color: var(--text-muted); width: 100%; font-size: 0.75rem; gap: 4px; cursor: pointer; }
+        .nav-btn.active { color: var(--primary); font-weight: 600; }
 
-        @media (min-width: 768px) {
-            body { padding: 20px; }
-            .container {
-                height: 92vh;
-                border-radius: var(--radius);
-                overflow: hidden;
-                border: 1px solid var(--border);
-            }
-        }
-
-        header {
-            background-color: var(--primary-dark);
-            color: white;
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.025em; }
-
-        /* ICON STYLING */
-        .icon {
-            width: 18px;
-            height: 18px;
-            stroke: currentColor;
-            stroke-width: 2;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-            fill: none;
-            display: inline-block;
-            vertical-align: middle;
-            flex-shrink: 0;
-        }
-        .icon-lg { width: 22px; height: 22px; }
-        .icon-sm { width: 14px; height: 14px; }
-
-        /* AUTH SECTION */
-        #auth-section {
-            background: var(--surface);
-            padding: 40px 30px;
-            margin: auto;
-            width: 100%;
-            max-width: 420px;
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            border: 1px solid var(--border);
-        }
-
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.85rem; color: var(--text-muted); }
-        input, select, textarea {
-            width: 100%; padding: 12px 16px;
-            border: 1px solid var(--border); border-radius: 8px; font-family: inherit;
-            font-size: 0.95rem; background: #f8fafc; outline: none; transition: all 0.2s;
-            color: var(--text-main);
-        }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px var(--primary-light); }
-
-        button {
-            background-color: var(--primary); color: white; border: none;
-            padding: 12px 20px; border-radius: 8px; cursor: pointer;
-            width: 100%; font-weight: 600; transition: background 0.2s, transform 0.1s;
-            font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px;
-        }
-        button:hover { background-color: var(--primary-dark); }
-        button:active { transform: scale(0.98); }
-
-        .btn-secondary { background-color: #475569; }
-        .btn-secondary:hover { background-color: #334155; }
-        .btn-google { background-color: #ffffff; color: #1e293b; border: 1px solid var(--border); margin-top: 12px; }
-        .btn-google:hover { background-color: #f1f5f9; }
-        .btn-link { background: none; color: var(--primary); border: none; text-decoration: underline; width: auto; cursor: pointer; padding: 0; font-size: 0.9rem; display: inline; }
-        .logout-btn { background-color: var(--danger); margin-top: 24px; }
-        .delete-btn { background-color: var(--danger); padding: 8px 12px; font-size: 0.8rem; }
-        .small-btn { width: auto; padding: 8px 14px; font-size: 0.85rem; }
-
+        /* Container & Cards */
+        .container { max-width: 800px; margin: 0 auto; padding: 16px; }
+        .card { background: var(--surface); border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .hidden { display: none !important; }
-        .message { color: var(--danger); font-size: 0.85rem; margin-top: 12px; text-align: center; font-weight: 500; }
 
-        /* APP BODY & NAVIGATION */
-        .app-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
-        .tab-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 24px; gap: 20px; }
+        /* Auth */
+        .auth-container { max-width: 400px; margin: 40px auto; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+        button.btn-primary { width: 100%; padding: 10px; background: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        button.btn-secondary { background: #e2e8f0; color: var(--text); border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
-        .bottom-nav {
-            display: flex;
-            background: #ffffff;
-            border-top: 1px solid var(--border);
-            flex-shrink: 0;
-            padding: 6px 0;
-        }
-        .nav-btn {
-            flex: 1;
-            padding: 10px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            border-radius: 0;
-            margin-top: 0;
-            transition: color 0.2s;
-        }
-        .nav-btn.active { color: var(--primary); }
+        /* Badges */
+        .badge-admin { background: #dbeafe; color: var(--primary-dark); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge-user { background: #f1f5f9; color: var(--text-muted); padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; }
+        .tag-badge { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 500; display: inline-block; margin: 2px; }
 
-        /* CARDS & SECTIONS */
-        .card {
-            background: #ffffff; padding: 16px; border-radius: var(--radius);
-            border: 1px solid var(--border); box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05);
-            display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;
-        }
-        .invitation-card {
-            cursor: pointer;
-            transition: border-color 0.2s, transform 0.1s;
-        }
-        .invitation-card:hover {
-            border-color: var(--primary);
-            transform: translateY(-1px);
-        }
+        /* User Chips */
+        .chips-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+        .user-chip { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; background: var(--surface); }
+        .user-chip.selected { border-color: var(--primary); background: #eff6ff; }
+        .user-chip-icon { width: 24px; height: 24px; border-radius: 50%; background: #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: bold; }
+        .user-chip-name { font-size: 0.85rem; font-weight: 500; }
+        .user-chip-email { font-size: 0.75rem; color: var(--text-muted); }
 
-        /* MODAL STYLING */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center;
-            z-index: 2000; padding: 20px;
-        }
-        .modal-content {
-            background: white; width: 100%; max-width: 500px; border-radius: var(--radius);
-            padding: 24px; box-shadow: var(--shadow); max-height: 90vh; overflow-y: auto;
-            display: flex; flex-direction: column; gap: 16px;
-        }
+        /* Map */
+        #map { height: 250px; width: 100%; border-radius: 8px; margin-top: 8px; }
 
-        /* USER CHIPS */
-        .user-chips-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 12px;
-            background: #f8fafc;
+        /* Chat Layout */
+        .chat-container { display: flex; height: calc(100vh - 150px); background: var(--surface); border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .chat-sidebar { width: 260px; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+        .chat-main { flex: 1; display: flex; flex-direction: column; }
+        .chat-room-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 10px; }
+        .chat-room-item.active { background: #eff6ff; }
+        .room-avatar { width: 36px; height: 36px; border-radius: 50%; background: #cbd5e1; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .room-meta { overflow: hidden; }
+        .room-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .room-sub { font-size: 0.75rem; color: var(--text-muted); }
+
+        .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message-bubble { max-width: 70%; padding: 8px 12px; border-radius: 12px; font-size: 0.9rem; position: relative; }
+        .my-message { align-self: flex-end; background: var(--primary); color: white; }
+        .other-message { align-self: flex-start; background: #f1f5f9; color: var(--text); }
+        .msg-sender { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px; }
+        .msg-time { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; }
+
+        .chat-input-area { padding: 12px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+        .modal-box { background: white; border-radius: 12px; padding: 20px; width: 90%; max-width: 500px; display: flex; flex-direction: column; gap: 12px; }
+        .small-btn { padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; border: none; cursor: pointer; background: var(--primary); color: white; }
+        .delete-btn { background: var(--danger); }
+
+        @media (max-width: 768px) {
+            .chat-sidebar { width: 100%; }
+            .chat-main { display: none; width: 100%; }
         }
-        .user-chip {
-            background: #ffffff;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.2s;
-        }
-        .user-chip:hover { border-color: var(--primary); }
-        .user-chip.selected { background: var(--primary-light); border-color: var(--primary); }
-        .user-chip-icon {
-            width: 28px; height: 28px; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; font-weight: bold; color: white; background: #94a3b8; flex-shrink: 0;
-        }
-        .user-chip.selected .user-chip-icon { background: var(--primary); }
-        .user-chip-info { overflow: hidden; }
-        .user-chip-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .user-chip-email { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-        /* TAG BADGES */
-        .tag-badge {
-            display: inline-flex;
-            align-items: center;
-            background: var(--primary-light);
-            color: var(--primary-dark);
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            gap: 4px;
-        }
-        .tag-badge-container { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-
-        /* CHAT LAYOUT */
-        .chat-layout {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            background: #f1f5f9;
-            position: relative;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-        }
-
-        .chat-sidebar {
-            width: 100%;
-            background: white;
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--border);
-            z-index: 2;
-        }
-
-        @media (min-width: 768px) {
-            .chat-sidebar { width: 360px; flex-shrink: 0; }
-            .chat-main { display: flex !important; }
-        }
-
-        .chat-sidebar-header {
-            padding: 16px;
-            background: #f8fafc;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid var(--border);
-            font-weight: 600;
-        }
-
-        .chat-rooms-list { flex: 1; overflow-y: auto; }
-
-        .chat-room-item {
-            display: flex;
-            align-items: center;
-            padding: 14px 16px;
-            gap: 12px;
-            cursor: pointer;
-            border-bottom: 1px solid #f1f5f9;
-            background: white;
-            transition: background 0.15s;
-            position: relative;
-        }
-        .chat-room-item:hover { background: #f8fafc; }
-        .chat-room-item.active { background: var(--primary-light); border-left: 4px solid var(--primary); }
-
-        .room-avatar {
-            width: 44px; height: 44px; border-radius: 50%;
-            background: #e2e8f0; display: flex; align-items: center; justify-content: center;
-            color: var(--text-muted); flex-shrink: 0; font-weight: bold;
-        }
-        .room-meta { flex: 1; overflow: hidden; }
-        .room-name { font-weight: 600; font-size: 0.95rem; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .room-sub { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-
-        /* CHAT MAIN WINDOW */
-        .chat-main {
-            display: none;
-            flex-direction: column;
-            flex: 1;
-            background: #efeae2;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 3;
-        }
-
-        @media (min-width: 768px) {
-            .chat-main { position: relative; display: flex; }
-            .mobile-back-btn { display: none !important; }
-        }
-
-        .chat-header {
-            padding: 12px 16px;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            flex-shrink: 0;
-        }
-
-        .mobile-back-btn { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0; width: auto; margin: 0; display: flex; align-items: center; }
-
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        .message-bubble {
-            max-width: 75%;
-            padding: 10px 14px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            word-wrap: break-word;
-            box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-        }
-        .message-bubble.my-message { align-self: flex-end; background-color: #dcf8c6; border-top-right-radius: 2px; }
-        .message-bubble.other-message { align-self: flex-start; background-color: #ffffff; border-top-left-radius: 2px; }
-        .msg-sender { font-size: 0.75rem; font-weight: bold; color: var(--primary-dark); margin-bottom: 3px; }
-        .msg-time { font-size: 0.65rem; color: var(--text-muted); float: right; margin-top: 4px; margin-left: 8px; }
-
-        .chat-input-area {
-            padding: 12px 16px;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-shrink: 0;
-            border-top: 1px solid var(--border);
-        }
-        .chat-input-area input { flex: 1; border-radius: 24px; padding: 10px 18px; }
-        .send-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; padding: 0; margin: 0; flex-shrink: 0; }
-
-        /* SETTINGS & MAPS */
-        .settings-panel {
-            background: #fff;
-            border-top: 1px solid var(--border);
-            padding: 16px;
-            max-height: 250px;
-            overflow-y: auto;
-            flex-shrink: 0;
-            box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05);
-        }
-
-        .map-wrapper { position: relative; width: 100%; height: 240px; margin-top: 8px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-        #map { height: 100%; width: 100%; z-index: 1; }
-        .map-crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; margin-top: -10px; margin-left: -10px; pointer-events: none; z-index: 1000; }
-        .map-crosshair::before, .map-crosshair::after { content: ''; position: absolute; background: var(--danger); }
-        .map-crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
-        .map-crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
-
-        .badge-admin { background: var(--danger); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
-        .badge-user { background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <h1>Hütte Dangstetten</h1>
-        <span id="header-user-badge" style="font-size: 0.85rem; opacity: 0.9;"></span>
-    </header>
+    <!-- Auth Bereich -->
+    <div id="auth-section" class="container auth-container">
+        <div class="card">
+            <h2 id="auth-title" style="margin-bottom: 16px;">Anmelden</h2>
+            <div id="name-group" class="form-group" style="display: none;">
+                <label>Name</label>
+                <input type="text" id="auth-name" placeholder="Dein Name">
+            </div>
+            <div class="form-group">
+                <label>E-Mail</label>
+                <input type="email" id="auth-email" placeholder="dein@email.de">
+            </div>
+            <div class="form-group">
+                <label>Passwort</label>
+                <input type="password" id="auth-password" placeholder="••••••••">
+            </div>
+            <button id="auth-submit-btn" class="btn-primary" style="margin-bottom: 8px;">Anmelden</button>
+            <button id="google-login-btn" class="btn-secondary" style="width: 100%; margin-bottom: 16px;">Mit Google anmelden</button>
 
-    <!-- AUTH SECTION -->
-    <div id="auth-section">
-        <h2 id="auth-title" style="margin-top:0; font-size:1.5rem; color:var(--primary-dark);">Anmelden</h2>
-
-        <div class="form-group" id="name-group" style="display:none;">
-            <label>Name</label>
-            <input type="text" id="auth-name" placeholder="Dein Name">
+            <p style="font-size: 0.85rem; text-align: center;">
+                <span id="auth-toggle-text">Noch keinen Account?</span>
+                <a href="#" id="auth-toggle-btn" style="color: var(--primary); font-weight: 600;">Registrieren</a>
+            </p>
+            <div id="auth-message" style="color: var(--danger); font-size: 0.85rem; margin-top: 8px; text-align: center;"></div>
         </div>
-
-        <div class="form-group">
-            <label>E-Mail</label>
-            <input type="email" id="auth-email" placeholder="beispiel@domain.de">
-        </div>
-
-        <div class="form-group">
-            <label>Passwort</label>
-            <input type="password" id="auth-password" placeholder="••••••••">
-        </div>
-
-        <button id="auth-submit-btn">Anmelden</button>
-        <button id="google-login-btn" class="btn-google">Mit Google anmelden</button>
-
-        <p style="text-align: center; margin-top: 20px; font-size:0.9rem;">
-            <span id="auth-toggle-text">Noch keinen Account?</span>
-            <button id="auth-toggle-btn" class="btn-link">Registrieren</button>
-        </p>
-        <div id="auth-message" class="message"></div>
     </div>
 
-    <!-- MAIN APP SECTION -->
-    <div id="app-section" class="app-body hidden">
+    <!-- App Bereich -->
+    <div id="app-section" class="hidden">
 
-        <!-- TABS CONTAINER -->
-        <div style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+        <!-- Tab 1: Einladungen -->
+        <div id="tab-invite-content" class="container">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div>
+                    <h2>Hütten-Einladungen</h2>
+                    <span id="user-display-name" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+                </div>
+                <span id="user-role-badge" class="badge-user">User</span>
+            </header>
 
-            <!-- TAB 1: EINLADUNGEN & KARTE -->
-            <div id="tab-invite-content" class="tab-content">
-                <!-- Admin-only Einladungs-Erstellung & Editor -->
-                <div class="card admin-only-element hidden" id="admin-invite-creator-card">
-                    <h3 style="margin:0 0 12px 0; color:var(--primary-dark);">Neue Einladung erstellen & Personalisieren</h3>
+            <!-- Admin Editor -->
+            <div id="admin-invite-creator-card" class="card hidden">
+                <h3 style="margin-bottom: 12px;">Neue Einladung erstellen</h3>
 
-                    <div class="form-group">
-                        <label>Gespeicherte Vorlage laden</label>
-                        <select id="template-select">
-                            <option value="">-- Neue Nachricht / Keine Vorlage --</option>
-                        </select>
+                <div class="form-group">
+                    <label>Empfänger auswählen</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 6px;">
+                        <button type="button" class="small-btn btn-secondary" id="select-all-btn">Alle auswählen</button>
+                        <button type="button" class="small-btn btn-secondary" id="deselect-all-btn">Auswahl aufheben</button>
                     </div>
-
-                    <div class="form-group">
-                        <label>Personen auswählen</label>
-                        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                            <button type="button" class="btn-secondary small-btn" id="select-all-btn">Alle auswählen</button>
-                            <button type="button" class="btn-secondary small-btn" id="deselect-all-btn">Keine</button>
-                        </div>
-                        <div id="user-chips" class="user-chips-grid"><em>Lade Nutzer...</em></div>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Datum & Uhrzeit</label>
-                        <input type="text" id="datetime-picker" placeholder="Datum auswählen...">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Treffpunkt / Ort</label>
-                        <select id="location-select">
-                            <option value="custom">-- Eigene Karten-Pin verwenden --</option>
-                        </select>
-
-                        <div class="map-wrapper">
-                            <div id="map"></div>
-                            <div class="map-crosshair"></div>
-                        </div>
-                        <small style="color: var(--text-muted); display: block; margin-top: 6px;">Fadenkreuz auf den Treffpunkt zentrieren.</small>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Ortsbezeichnung (optional)</label>
-                        <input type="text" id="location-name-input" placeholder="z.B. Wanderparkplatz">
-                        <button type="button" id="save-location-btn" class="btn-secondary small-btn" style="margin-top:8px;">Diesen Ort für die Zukunft speichern</button>
-                    </div>
-
-                    <div class="form-group">
-                        <label>E-Mail Betreff</label>
-                        <input type="text" id="email-subject-input" value="Einladung zur Hütte Dangstetten">
-                    </div>
-
-                    <div class="form-group">
-                        <label>Nachrichten-Inhalt (Verwende <code style="background:#e2e8f0; padding:2px 4px; border-radius:4px;">{{name}}; {{mapsUrl}}; {{datetime}}; {{sender}}</code> für den Namen, den Standort, das Datum und den Absender)</label>
-                        <textarea id="email-message-input" rows="6" placeholder="Hallo {{name}},&#10;&#10;hiermit lade ich dich herzlich ein..."></textarea>
-                        <div style="display:flex; gap:8px; margin-top:8px;">
-                            <input type="text" id="template-name-input" placeholder="Name für neue Vorlage..." style="flex:1;">
-                            <button type="button" id="save-template-btn" class="btn-secondary small-btn" style="width:auto;">Als Vorlage speichern</button>
-                        </div>
-                    </div>
-
-                    <button id="send-invite-btn">
-                        <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                        Einladung personalisiert über GMX senden
-                    </button>
+                    <div id="user-chips" class="chips-container"></div>
                 </div>
 
-                <!-- GESPEICHERTE ORTE VERWALTEN (Admin-only) -->
-                <div class="card admin-only-element hidden" id="admin-locations-manager-card">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Gespeicherte Orte verwalten</h3>
-                    <div id="saved-locations-management-list"><em>Lade gespeicherte Orte...</em></div>
+                <div class="form-group">
+                    <label>Vorlage laden</label>
+                    <select id="template-select"><option value="">-- Keine Vorlage --</option></select>
                 </div>
 
-                <div class="card">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Einladungen</h3>
-                    <div id="invitations-list"><em>Lade Einladungen...</em></div>
+                <div class="form-group">
+                    <label>Datum & Uhrzeit</label>
+                    <input type="text" id="datetime-picker" placeholder="Datum auswählen">
                 </div>
+
+                <div class="form-group">
+                    <label>Betreff</label>
+                    <input type="text" id="email-subject-input" placeholder="Betreff der Einladung">
+                </div>
+
+                <div class="form-group">
+                    <label>Nachricht / Details</label>
+                    <textarea id="email-message-input" rows="3" placeholder="Hallo {{name}}, du bist eingeladen..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Standort auf Karte wählen</label>
+                    <select id="location-select"><option value="custom">-- Eigene Karten-Pin verwenden --</option></select>
+                    <div id="map"></div>
+                </div>
+
+                <button id="send-invite-btn" class="btn-primary" style="margin-top: 12px;">Einladung senden</button>
             </div>
 
-            <!-- TAB 2: CHATS & NACHRICHTEN -->
-            <div id="tab-chat-content" class="tab-content hidden" style="padding:0;">
-                <div class="chat-layout">
+            <!-- Einladungsliste -->
+            <h3 style="margin: 16px 0 8px 0;">Deine Einladungen</h3>
+            <div id="invitations-list"></div>
+        </div>
 
-                    <!-- Sidebar: Vertikale Chat-Liste -->
-                    <div class="chat-sidebar" id="chat-sidebar">
-                        <div class="chat-sidebar-header">
-                            <span>Chats & Kanäle</span>
-                        </div>
-                        <div class="chat-rooms-list" id="chat-rooms-list"></div>
-                    </div>
-
-                    <!-- Hauptfenster Chat -->
-                    <div class="chat-main" id="chat-main">
-                        <div class="chat-header">
-                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                                <button class="mobile-back-btn" id="mobile-back-btn">
-                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                                </button>
-                                <div class="room-avatar" id="active-chat-avatar">
-                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                </div>
-                                <div style="overflow:hidden;">
-                                    <div class="room-name" id="active-chat-title">Hütten-Hauptchat</div>
-                                    <div class="room-sub" id="active-chat-sub">Öffentlicher Raum für alle</div>
-                                </div>
-                            </div>
+        <!-- Tab 2: Chat -->
+        <div id="tab-chat-content" class="container hidden">
+            <div class="chat-container">
+                <div id="chat-sidebar" class="chat-sidebar">
+                    <div style="padding: 12px; border-bottom: 1px solid var(--border); font-weight: bold;">Kanäle & Chats</div>
+                    <div id="chat-rooms-list" style="flex: 1; overflow-y: auto;"></div>
+                </div>
+                <div id="chat-main" class="chat-main">
+                    <div style="padding: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <button id="mobile-back-btn" class="small-btn btn-secondary" style="display: none;">←</button>
+                            <div id="active-chat-avatar" class="room-avatar"></div>
                             <div>
-                                <button id="toggle-chat-settings-btn" class="btn-secondary small-btn hidden" style="background:transparent; color:var(--text-muted); padding:4px;" title="Gruppen-Admin-Verwaltung">
-                                    <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                                </button>
+                                <div id="active-chat-title" style="font-weight: bold; font-size: 0.95rem;">Chat</div>
+                                <div id="active-chat-sub" style="font-size: 0.75rem; color: var(--text-muted);">...</div>
                             </div>
                         </div>
-
-                        <!-- Chat Nachrichten -->
-                        <div class="messages-container" id="chat-messages">
-                            <em>Lade Nachrichten...</em>
-                        </div>
-
-                        <!-- Gruppen / Admin Einstellungen Panel -->
-                        <div id="chat-settings-panel" class="settings-panel hidden">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                                <strong id="chat-settings-title" style="font-size:0.9rem; color:var(--primary-dark);">Admin-Gruppenverwaltung</strong>
-                                <button class="small-btn btn-secondary" onclick="document.getElementById('chat-settings-panel').classList.add('hidden')" style="padding:2px 8px;">✕</button>
-                            </div>
-                            <div id="group-settings-content"></div>
-                        </div>
-
-                        <!-- Eingabebereich -->
-                        <div class="chat-input-area">
-                            <input type="text" id="chat-input" placeholder="Nachricht schreiben...">
-                            <button class="send-btn" id="chat-send-btn" title="Senden">
-                                <svg class="icon" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                            </button>
-                        </div>
+                        <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden">⚙️</button>
                     </div>
 
+                    <div id="chat-settings-panel" class="hidden" style="padding: 12px; background: #f8fafc; border-bottom: 1px solid var(--border);">
+                        <div id="group-settings-content"></div>
+                    </div>
+
+                    <div id="chat-messages" class="chat-messages"></div>
+
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Nachricht schreiben...">
+                        <button id="chat-send-btn" class="btn-primary" style="width: auto; padding: 0 16px;">Senden</button>
+                    </div>
                 </div>
             </div>
-
-            <!-- TAB 3: PROFIL & ADMIN -->
-            <div id="tab-profile-content" class="tab-content hidden">
-                <div class="card">
-                    <h3 style="margin:0 0 6px 0; color:var(--primary-dark);">Profil (<span id="user-display-name"></span>)</h3>
-                    <p style="margin:0 0 8px 0; font-size:0.9rem;">Rolle: <span id="user-role-badge" class="badge-user">User</span></p>
-                    <div style="font-size:0.9rem; margin-bottom:12px;">Deine Tags: <div id="user-profile-tags" class="tag-badge-container"><em>Keine</em></div></div>
-
-                    <h4 style="margin:0 0 8px 0; font-size:0.9rem;">E-Mail-Adresse ändern</h4>
-                    <div class="form-group" style="margin-bottom:8px;">
-                        <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
-                    </div>
-                    <button id="change-email-btn" class="btn-secondary small-btn">E-Mail aktualisieren</button>
-                    <div id="email-change-msg" class="message"></div>
-                </div>
-
-                <!-- ADMIN: TAGS VERWALTEN & ERSTELLEN -->
-                <div id="admin-tags-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Tags / Gruppen erstellen</h3>
-                    <div class="form-group" style="margin-bottom:8px;">
-                        <input type="text" id="new-tag-name-input" placeholder="Tag-Name (z.B. IT, Vorstand)">
-                    </div>
-                    <button id="create-tag-btn" class="small-btn">Gruppe / Tag erstellen</button>
-
-                    <h4 style="margin:16px 0 8px 0; font-size:0.9rem;">Vorhandene Gruppen & Tags</h4>
-                    <div id="admin-tags-list"><em>Lade Tags...</em></div>
-                </div>
-
-                <div id="admin-section" class="card hidden" style="border-left: 4px solid var(--primary-dark);">
-                    <h3 style="margin:0 0 10px 0; color:var(--primary-dark);">Admin-Bereich: Nutzer & Berechtigungen</h3>
-                    <div id="admin-user-list"><em>Lade Nutzerliste...</em></div>
-                </div>
-
-                <button id="logout-btn" class="logout-btn">Abmelden</button>
-            </div>
-
         </div>
 
-        <!-- UNTERE NAVIGATION -->
-        <div class="bottom-nav">
-            <button class="nav-btn active" id="nav-invite-btn">
-                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                Einladungen
-            </button>
-            <button class="nav-btn" id="nav-chat-btn">
-                <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                Chats
-            </button>
-            <button class="nav-btn" id="nav-profile-btn">
-                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                Profil
-            </button>
+        <!-- Tab 3: Profil & Admin -->
+        <div id="tab-profile-content" class="container hidden">
+            <div class="card">
+                <h3>Mein Profil</h3>
+                <p style="margin-top: 8px; font-size: 0.9rem;">Angemeldet als: <strong id="header-user-badge"></strong></p>
+                <div style="margin-top: 8px;">Gruppen: <span id="user-profile-tags"></span></div>
+
+                <div style="margin-top: 16px; border-top: 1px solid var(--border); padding-top: 16px;">
+                    <label style="font-size: 0.85rem; font-weight: 600;">E-Mail ändern</label>
+                    <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <input type="email" id="new-email-input" placeholder="Neue E-Mail">
+                        <button id="change-email-btn" class="small-btn">Speichern</button>
+                    </div>
+                    <div id="email-change-msg" style="font-size: 0.8rem; margin-top: 4px;"></div>
+                </div>
+
+                <button id="logout-btn" class="btn-secondary" style="width: 100%; margin-top: 16px; color: var(--danger);">Abmelden</button>
+            </div>
+
+            <!-- Admin Einstellungen -->
+            <div id="admin-section" class="card hidden">
+                <h3>Admin-Verwaltung</h3>
+
+                <h4 style="margin-top: 12px; font-size: 0.9rem;">Nutzerverwaltung</h4>
+                <div id="admin-user-list" style="margin-top: 8px;"></div>
+
+                <h4 style="margin-top: 16px; font-size: 0.9rem;">Gruppen / Tags erstellen</h4>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <input type="text" id="new-tag-name-input" placeholder="Gruppenname (z.B. Orga)">
+                    <button id="create-tag-btn" class="small-btn">Erstellen</button>
+                </div>
+                <div id="admin-tags-list" style="margin-top: 8px;"></div>
+
+                <h4 style="margin-top: 16px; font-size: 0.9rem;">Vorlagen verwalten</h4>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <input type="text" id="template-name-input" placeholder="Name der Vorlage">
+                    <button id="save-template-btn" class="small-btn">Aktuellen Text speichern</button>
+                </div>
+
+                <h4 style="margin-top: 16px; font-size: 0.9rem;">Orte verwalten</h4>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <input type="text" id="location-name-input" placeholder="Name für aktuelle Kartenposition">
+                    <button id="save-location-btn" class="small-btn">Ort Speichern</button>
+                </div>
+                <div id="saved-locations-management-list" style="margin-top: 8px;"></div>
+            </div>
         </div>
 
     </div>
-</div>
 
-<!-- Modal Container für Einladungs-Details -->
-<div id="invitation-modal" class="modal-overlay hidden">
-    <div class="modal-content" id="modal-content-box"></div>
-</div>
+    <!-- Navigation -->
+    <nav>
+        <button id="nav-invite-btn" class="nav-btn active">
+            <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Einladungen
+        </button>
+        <button id="nav-chat-btn" class="nav-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Chat
+        </button>
+        <button id="nav-profile-btn" class="nav-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profil
+        </button>
+    </nav>
 
-<!-- Flatpickr & Leaflet JS -->
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/de.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Modal overlay für Einladungsdetails -->
+    <div id="invitation-modal" class="modal-overlay hidden">
+        <div id="modal-content-box" class="modal-box"></div>
+    </div>
 
-<!-- EmailJS SDK -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-
-<!-- Firebase Application Script -->
-<script type="module" src="app.js"></script>
-
+    <!-- Haupt-Skript -->
+    <script type="module" src="app.js"></script>
 </body>
 </html>
