@@ -40,9 +40,5 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(clients.claim());
 });
 
-self.addEventListener('fetch', (event) => {
-    // Standard Network-First Strategie
-    event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
-    );
-});
+// Firebase Firestore nutzt Streaming-/Long-Polling-Anfragen. Diese dürfen
+// nicht durch eine eigene Cache-Strategie des Push-Service-Workers laufen.

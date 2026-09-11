@@ -713,6 +713,8 @@ function initApp() {
 async function initForegroundNotifications() {
     if (!FCM_VAPID_KEY || !('serviceWorker' in navigator)) return;
     try {
+        const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        await registration.update();
         if (!(await isSupported())) return;
         messaging = messaging || getMessaging(app);
         onMessage(messaging, (payload) => {
