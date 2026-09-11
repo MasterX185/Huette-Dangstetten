@@ -81,9 +81,7 @@ async function ensureUserDocument(user) {
 }
 
 getRedirectResult(auth).then(async (result) => {
-    if (result && result.user) {
-        await ensureUserDocument(result.user);
-    }
+    if (result && result.user) await ensureUserDocument(result.user);
 }).catch((error) => {
     const authMessage = document.getElementById('auth-message');
     if (authMessage) authMessage.innerText = 'Google-Login Fehler: ' + error.message;
@@ -112,9 +110,7 @@ window.toggleUserTag = async (uid, tagName, add) => {
     }
     try {
         await updateDoc(doc(db, "users", uid), { tags });
-        if (currentChatRoom === "tag_" + tagName) {
-            setupTagSettingsPanel(tagName);
-        }
+        if (currentChatRoom === "tag_" + tagName) setupTagSettingsPanel(tagName);
     } catch (err) {
         alert('Fehler beim Zuweisen des Tags: ' + err.message);
     }
@@ -122,15 +118,14 @@ window.toggleUserTag = async (uid, tagName, add) => {
 
 window.deleteTag = async (tagId, tagName) => {
     if (!currentUserData || currentUserData.role !== 'admin') return;
-    if (confirm(`Gruppe / Tag "${tagName}" wirklich löschen?`)) {
-        try {
-            await deleteDoc(doc(db, "tags", tagId));
-            if (currentChatRoom === "tag_" + tagName) {
-                window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
-            }
-        } catch (err) {
-            alert('Fehler beim Löschen: ' + err.message);
+    if (!confirm(`Gruppe / Tag "${tagName}" wirklich löschen?`)) return;
+    try {
+        await deleteDoc(doc(db, "tags", tagId));
+        if (currentChatRoom === "tag_" + tagName) {
+            window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
         }
+    } catch (err) {
+        alert('Fehler beim Löschen: ' + err.message);
     }
 };
 
@@ -353,6 +348,48 @@ navChatBtn.addEventListener('click', () => {
 navProfileBtn.addEventListener('click', () => {
     switchTab(navProfileBtn, tabProfileContent);
     renderProfileTags();
+});
+
+const appMenu = document.getElementById('app-menu');
+const menuScrim = document.getElementById('menu-scrim');
+const appBarTitle = document.getElementById('app-bar-title');
+const openAppMenuBtn = document.getElementById('open-app-menu-btn');
+const closeAppMenuBtn = document.getElementById('close-app-menu-btn');
+
+function setAppMenuOpen(isOpen) {
+    appMenu?.classList.toggle('open', isOpen);
+    menuScrim?.classList.toggle('hidden', !isOpen);
+    openAppMenuBtn?.setAttribute('aria-expanded', String(isOpen));
+}
+
+function selectAppMenuTab(tabName) {
+    const tabMap = {
+        invite: [navInviteBtn, tabInviteContent, 'Einladungen'],
+        blog: [navBlogBtn, tabBlogContent, 'Blog'],
+        chat: [navChatBtn, tabChatContent, 'Chat'],
+        profile: [navProfileBtn, tabProfileContent, 'Profil & Verwaltung']
+    };
+    const target = tabMap[tabName];
+    if (!target) return;
+
+    switchTab(target[0], target[1]);
+    if (target[0] === navProfileBtn) renderProfileTags();
+    if (target[0] === navChatBtn && window.innerWidth < 768) {
+        document.getElementById('chat-sidebar').style.display = 'flex';
+        document.getElementById('chat-main').style.display = 'none';
+    }
+    if (appBarTitle) appBarTitle.innerText = target[2];
+    document.querySelectorAll('[data-menu-tab]').forEach(item => {
+        item.classList.toggle('active', item.dataset.menuTab === tabName);
+    });
+    setAppMenuOpen(false);
+}
+
+openAppMenuBtn?.addEventListener('click', () => setAppMenuOpen(true));
+closeAppMenuBtn?.addEventListener('click', () => setAppMenuOpen(false));
+menuScrim?.addEventListener('click', () => setAppMenuOpen(false));
+document.querySelectorAll('[data-menu-tab]').forEach(item => {
+    item.addEventListener('click', () => selectAppMenuTab(item.dataset.menuTab));
 });
 
 document.getElementById('mobile-back-btn').addEventListener('click', () => {
@@ -801,27 +838,62 @@ function resetBlogForm() {
     updateBlogPreview();
 }
 
-function applyBlogFormat(type) {
+function insertBlogMarkdown(type) {
     const input = document.getElementById('blog-content-input');
+    if (!input) return;
     const start = input.selectionStart;
     const end = input.selectionEnd;
     const selected = input.value.substring(start, end) || 'Text';
-    let insertion = '';
-
-    switch (type) {
-        case 'bold': insertion = `**${selected}**`; break;
-        case 'italic': insertion = `*${selected}*`; break;
-        case 'heading': insertion = `\n## ${selected}`; break;
-        case 'quote': insertion = `\n> ${selected}`; break;
-        case 'list': insertion = `\n- ${selected}`; break;
-        case 'link': insertion = `[${selected}](https://example.com)`; break;
-        case 'code': insertion = `\`${selected}\``; break;
-        default: break;
-    }
-
-    input.setRangeText(insertion, start, end, 'end');
+    const formats = {
+        bold: `**${selected}**`, italic: `*${selected}*`, heading: `\n## ${selected}`,
+        heading2: `\n### ${selected}`, quote: `\n> ${selected}`, list: `\n- ${selected}`,
+        'ordered-list': `\n1. ${selected}`, link: `[${selected}](https://example.com)`,
+        code: `\`${selected}\``, codeblock: `\n\n\`\`\`\n${selected}\n\`\`\``,
+        image: `\n![Bild](${selected})\n`, separator: '\n\n---\n\n',
+        date: '{{date}}', time: '{{time}}', datetime: '{{datetime}}'
+    };
+    input.setRangeText(formats[type] || selected, start, end, 'end');
     input.focus();
     updateBlogPreview();
+}
+
+window.insertBlogImageUrl = () => {
+    const urlInput = document.getElementById('blog-image-url-input');
+    const contentInput = document.getElementById('blog-content-input');
+    const url = urlInput?.value.trim();
+    if (!url || !contentInput) return alert('Bitte gib eine Bild-URL ein.');
+    const markdown = `\n![Bild](${url})\n`;
+    contentInput.setRangeText(markdown, contentInput.selectionStart, contentInput.selectionEnd, 'end');
+    contentInput.focus();
+    urlInput.value = '';
+    updateBlogPreview();
+};
+
+window.uploadBlogImageToExternalApi = async () => {
+    const fileInput = document.getElementById('blog-image-file-input');
+    const keyInput = document.getElementById('blog-image-api-key-input');
+    const contentInput = document.getElementById('blog-content-input');
+    const file = fileInput?.files?.[0];
+    const apiKey = keyInput?.value.trim();
+    if (!file || !contentInput) return alert('Bitte ein Bild auswählen.');
+    if (!apiKey) return alert('Bitte einen ImgBB-API-Key eingeben.');
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!response.ok || !result?.data?.url) throw new Error(result?.error?.message || 'Bild-Upload fehlgeschlagen.');
+        contentInput.setRangeText(`\n![Bild](${result.data.url})\n`, contentInput.selectionStart, contentInput.selectionEnd, 'end');
+        contentInput.focus();
+        fileInput.value = '';
+        updateBlogPreview();
+    } catch (err) {
+        alert('Fehler beim Upload: ' + err.message);
+    }
+};
+
+function applyBlogFormat(type) {
+    insertBlogMarkdown(type);
 }
 
 function updateBlogPreview() {
@@ -834,6 +906,9 @@ function updateBlogPreview() {
 document.querySelectorAll('.blog-toolbar-btn').forEach(button => {
     button.addEventListener('click', () => applyBlogFormat(button.dataset.format));
 });
+
+document.getElementById('blog-add-image-btn')?.addEventListener('click', window.insertBlogImageUrl);
+document.getElementById('blog-upload-image-btn')?.addEventListener('click', window.uploadBlogImageToExternalApi);
 
 document.getElementById('blog-content-input')?.addEventListener('input', updateBlogPreview);
 document.getElementById('cancel-blog-edit-btn')?.addEventListener('click', resetBlogForm);
