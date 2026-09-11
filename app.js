@@ -284,6 +284,7 @@ window.startEditingInvitation = (invId) => {
         pickerEl.value = inv.datetime || '';
     }
 
+    document.getElementById('email-subject-input').value = inv.subject || '';
     document.getElementById('email-message-input').value = inv.details || '';
 
     selectedUserEmails.clear();
@@ -322,15 +323,17 @@ const forgotPasswordBtn = document.getElementById('forgot-password-btn');
 const forgotPasswordContainer = document.getElementById('forgot-password-container');
 
 const navInviteBtn = document.getElementById('nav-invite-btn');
+const navBlogBtn = document.getElementById('nav-blog-btn');
 const navChatBtn = document.getElementById('nav-chat-btn');
 const navProfileBtn = document.getElementById('nav-profile-btn');
 const tabInviteContent = document.getElementById('tab-invite-content');
+const tabBlogContent = document.getElementById('tab-blog-content');
 const tabChatContent = document.getElementById('tab-chat-content');
 const tabProfileContent = document.getElementById('tab-profile-content');
 
 function switchTab(activeBtn, activeContent) {
-    [navInviteBtn, navChatBtn, navProfileBtn].forEach(b => b.classList.remove('active'));
-    [tabInviteContent, tabChatContent, tabProfileContent].forEach(c => c.classList.add('hidden'));
+    [navInviteBtn, navBlogBtn, navChatBtn, navProfileBtn].forEach(b => b && b.classList.remove('active'));
+    [tabInviteContent, tabBlogContent, tabChatContent, tabProfileContent].forEach(c => c && c.classList.add('hidden'));
     activeBtn.classList.add('active');
     activeContent.classList.remove('hidden');
     if (activeBtn === navInviteBtn && map) {
@@ -339,6 +342,7 @@ function switchTab(activeBtn, activeContent) {
 }
 
 navInviteBtn.addEventListener('click', () => switchTab(navInviteBtn, tabInviteContent));
+navBlogBtn.addEventListener('click', () => switchTab(navBlogBtn, tabBlogContent));
 navChatBtn.addEventListener('click', () => {
     switchTab(navChatBtn, tabChatContent);
     if (window.innerWidth < 768) {
@@ -476,7 +480,8 @@ function updateUIForCurrentUser() {
 
     const adminElements = [
         document.getElementById('admin-section'),
-        document.getElementById('admin-invite-creator-card')
+        document.getElementById('admin-invite-creator-card'),
+        document.getElementById('blog-admin-create')
     ];
 
     adminElements.forEach(el => {
@@ -516,6 +521,7 @@ function initApp() {
     loadTemplates();
     loadLocations();
     loadInvitations();
+    loadBlogs();
 }
 
 function initMap() {
@@ -625,6 +631,250 @@ document.getElementById('save-template-btn')?.addEventListener('click', async ()
         nameInput.value = '';
     } catch (err) {
         alert('Fehler beim Speichern der Vorlage: ' + err.message);
+    }
+});
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderMarkdownToHtml(markdownText) {
+    if (!markdownText) return '';
+
+    let html = escapeHtml(markdownText)
+        .replace(/\r\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n');
+
+    const tokens = html.split(/\n\n+/);
+    const formatted = tokens.map(block => {
+        const trimmed = block.trim();
+        if (!trimmed) return '';
+
+        if (/^#{1,6}\s/.test(trimmed)) {
+            const level = trimmed.match(/^#+/)[0].length;
+            const text = trimmed.replace(/^#{1,6}\s*/, '');
+            return `<h${level}>${text}</h${level}>`;
+        }
+
+        if (/^>\s?/.test(trimmed)) {
+            const quote = trimmed.replace(/^>\s?/gm, '');
+            return `<blockquote>${quote}</blockquote>`;
+        }
+
+        if (/^[-*+]\s+/.test(trimmed)) {
+            const items = trimmed.split(/\n[-*+]\s+/).map(item => `<li>${item}</li>`).join('');
+            return `<ul>${items}</ul>`;
+        }
+
+        if (/^\d+\.\s+/.test(trimmed)) {
+            const items = trimmed.split(/\n\d+\.\s+/).map(item => `<li>${item}</li>`).join('');
+            return `<ol>${items}</ol>`;
+        }
+
+        if (/^```/.test(trimmed)) {
+            return `<pre><code>${trimmed.replace(/^```\w*\n?|```$/g, '')}</code></pre>`;
+        }
+
+        return `<p>${trimmed
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+            .replace(/\n/g, '<br>')}</p>`;
+    });
+
+    return formatted.join('');
+}
+
+function renderBlogContent(content) {
+    const normalized = String(content || '');
+    if (!normalized.trim()) return '<p>Kein Inhalt vorhanden.</p>';
+
+    const lower = normalized.toLowerCase();
+    const hasHtml = /<\s*(p|div|h[1-6]|ul|ol|li|strong|em|a|blockquote|img|code|pre|br)\b/i.test(normalized);
+
+    if (hasHtml) {
+        const safeHtml = normalized
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            .replace(/on\w+="[^"]*"/gi, '')
+            .replace(/on\w+='[^']*'/gi, '')
+            .replace(/href="javascript:[^"]*"/gi, 'href="#"');
+        return safeHtml;
+    }
+
+    return renderMarkdownToHtml(normalized);
+}
+
+function loadBlogs() {
+    const unsub = onSnapshot(query(collection(db, "blogs"), orderBy("createdAt", "desc")), (snapshot) => {
+        const container = document.getElementById('blog-list');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (snapshot.empty) {
+            container.innerHTML = '<em>Es wurden noch keine Blogbeiträge veröffentlicht.</em>';
+            return;
+        }
+
+        snapshot.forEach(docSnap => {
+            const blog = docSnap.data();
+            const article = document.createElement('article');
+            article.className = 'card';
+            article.dataset.blogId = docSnap.id;
+            article.style.padding = '18px';
+            article.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px;">
+                    <div>
+                        <h4 style="margin:0 0 6px;">${escapeHtml(blog.title || 'Ohne Titel')}</h4>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Von ${escapeHtml(blog.author || 'Unbekannt')} · ${blog.createdAt ? new Date(blog.createdAt.toDate()).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : 'Datum unbekannt'}</div>
+                    </div>
+                    ${currentUserData && currentUserData.role === 'admin' ? `
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button class="small-btn btn-secondary" onclick="window.editBlog('${docSnap.id}')">Bearbeiten</button>
+                            <button class="small-btn delete-btn" onclick="window.deleteBlog('${docSnap.id}')">Löschen</button>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="blog-preview" style="margin-top:0; padding:0; border:none; background:transparent;">
+                    <div class="blog-content">${renderBlogContent(blog.content)}</div>
+                </div>
+            `;
+            container.appendChild(article);
+        });
+    });
+    activeUnsubscribes.push(unsub);
+}
+
+window.editBlog = async (blogId) => {
+    if (!currentUserData || currentUserData.role !== 'admin') return;
+
+    try {
+        const docSnap = await getDoc(doc(db, 'blogs', blogId));
+        if (!docSnap.exists()) return;
+
+        const blog = docSnap.data();
+        const titleInput = document.getElementById('blog-title-input');
+        const contentInput = document.getElementById('blog-content-input');
+        const formTitle = document.getElementById('blog-form-title');
+        const cancelBtn = document.getElementById('cancel-blog-edit-btn');
+        const createBtn = document.getElementById('create-blog-btn');
+
+        titleInput.value = blog.title || '';
+        contentInput.value = blog.content || '';
+        document.getElementById('blog-admin-create').classList.remove('hidden');
+        formTitle.innerText = 'Blogbeitrag bearbeiten';
+        createBtn.innerText = 'Änderungen speichern';
+        cancelBtn.classList.remove('hidden');
+        cancelBtn.dataset.blogId = blogId;
+        createBtn.dataset.blogId = blogId;
+        updateBlogPreview();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+        alert('Fehler beim Laden des Blogbeitrags: ' + err.message);
+    }
+};
+
+window.deleteBlog = async (blogId) => {
+    if (!currentUserData || currentUserData.role !== 'admin') return;
+    if (!confirm('Diesen Blogbeitrag wirklich löschen?')) return;
+
+    try {
+        await deleteDoc(doc(db, 'blogs', blogId));
+    } catch (err) {
+        alert('Fehler beim Löschen des Blogbeitrags: ' + err.message);
+    }
+};
+
+function resetBlogForm() {
+    document.getElementById('blog-title-input').value = '';
+    document.getElementById('blog-content-input').value = '';
+    document.getElementById('blog-form-title').innerText = 'Neuen Blogbeitrag erstellen';
+    document.getElementById('create-blog-btn').innerText = 'Beitrag veröffentlichen';
+    document.getElementById('create-blog-btn').removeAttribute('data-blog-id');
+    document.getElementById('cancel-blog-edit-btn').classList.add('hidden');
+    document.getElementById('cancel-blog-edit-btn').removeAttribute('data-blog-id');
+    updateBlogPreview();
+}
+
+function applyBlogFormat(type) {
+    const input = document.getElementById('blog-content-input');
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const selected = input.value.substring(start, end) || 'Text';
+    let insertion = '';
+
+    switch (type) {
+        case 'bold': insertion = `**${selected}**`; break;
+        case 'italic': insertion = `*${selected}*`; break;
+        case 'heading': insertion = `\n## ${selected}`; break;
+        case 'quote': insertion = `\n> ${selected}`; break;
+        case 'list': insertion = `\n- ${selected}`; break;
+        case 'link': insertion = `[${selected}](https://example.com)`; break;
+        case 'code': insertion = `\`${selected}\``; break;
+        default: break;
+    }
+
+    input.setRangeText(insertion, start, end, 'end');
+    input.focus();
+    updateBlogPreview();
+}
+
+function updateBlogPreview() {
+    const preview = document.getElementById('blog-preview-content');
+    const input = document.getElementById('blog-content-input');
+    if (!preview || !input) return;
+    preview.innerHTML = renderBlogContent(input.value);
+}
+
+document.querySelectorAll('.blog-toolbar-btn').forEach(button => {
+    button.addEventListener('click', () => applyBlogFormat(button.dataset.format));
+});
+
+document.getElementById('blog-content-input')?.addEventListener('input', updateBlogPreview);
+document.getElementById('cancel-blog-edit-btn')?.addEventListener('click', resetBlogForm);
+
+document.getElementById('create-blog-btn')?.addEventListener('click', async () => {
+    if (!currentUserData || currentUserData.role !== 'admin') return;
+
+    const titleInput = document.getElementById('blog-title-input');
+    const contentInput = document.getElementById('blog-content-input');
+    const title = titleInput.value.trim();
+    const content = contentInput.value.trim();
+
+    if (!title || !content) {
+        alert('Bitte Titel und Inhalt für den Blogbeitrag eingeben.');
+        return;
+    }
+
+    const blogId = document.getElementById('create-blog-btn').dataset.blogId;
+
+    try {
+        if (blogId) {
+            await updateDoc(doc(db, 'blogs', blogId), {
+                title,
+                content,
+                author: currentUserData.name || auth.currentUser.email,
+                updatedAt: serverTimestamp()
+            });
+            alert('Blogbeitrag erfolgreich aktualisiert!');
+        } else {
+            await addDoc(collection(db, 'blogs'), {
+                title,
+                content,
+                author: currentUserData.name || auth.currentUser.email,
+                createdAt: serverTimestamp()
+            });
+            alert('Blogbeitrag erfolgreich veröffentlicht!');
+        }
+
+        resetBlogForm();
+    } catch (err) {
+        alert('Fehler beim Speichern des Blogbeitrags: ' + err.message);
     }
 });
 
@@ -791,6 +1041,7 @@ async function createNewInvitation() {
             createdBy: auth.currentUser.email,
             recipients: recipientEmails,
             datetime,
+            subject: subjectTemplate,
             details: messageTemplate,
             mapsUrl,
             createdAt: serverTimestamp()
@@ -836,7 +1087,12 @@ window.updateAndResendInvitation = async (invId) => {
 
     try {
         await updateDoc(doc(db, "invitations", invId), {
-            recipients: recipientEmails, datetime, details: messageTemplate, mapsUrl, updatedAt: serverTimestamp()
+            recipients: recipientEmails,
+            datetime,
+            subject: subjectTemplate,
+            details: messageTemplate,
+            mapsUrl,
+            updatedAt: serverTimestamp()
         });
 
         for (const user of selectedUsers) {

@@ -131,6 +131,19 @@
 
         .chat-input-area { padding: 12px; background: var(--surface); border-top: 1px solid var(--border-strong); display: flex; gap: 8px; align-items: center; }
 
+        .blog-editor { border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
+        .blog-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-strong); background: var(--background); }
+        .blog-toolbar-btn { padding: 6px 10px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 6px; font-size: 0.75rem; font-weight: 600; color: var(--text); cursor: pointer; }
+        .blog-editor textarea { border: none; border-radius: 0; min-height: 220px; resize: vertical; background: var(--surface); }
+        .blog-preview { margin-top: 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 16px; background: var(--surface); }
+        .blog-preview h1, .blog-preview h2, .blog-preview h3 { margin: 0.8em 0 0.4em; }
+        .blog-preview p, .blog-preview ul, .blog-preview ol { margin: 0.7em 0; line-height: 1.7; }
+        .blog-preview ul, .blog-preview ol { padding-left: 1.5em; }
+        .blog-preview strong { font-weight: 700; }
+        .blog-preview em { font-style: italic; }
+        .blog-preview blockquote { border-left: 4px solid var(--primary); padding-left: 12px; color: var(--text-muted); margin: 1em 0; }
+        .blog-preview code { background: #f1f5f9; border-radius: 6px; padding: 2px 6px; font-family: ui-monospace, SFMono-Regular, monospace; }
+
         /* Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
         .modal-box { background: white; border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); max-height: 90vh; overflow-y: auto; }
@@ -313,7 +326,47 @@
             </div>
         </div>
 
-        <!-- Tab 3: Profil & Admin -->
+        <!-- Tab 3: Blog -->
+        <div id="tab-blog-content" class="container hidden">
+            <div class="card">
+                <h3 style="margin-bottom: 16px;">Blog</h3>
+
+                <div id="blog-admin-create" class="hidden" style="margin-bottom: 20px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 16px; background: var(--background);">
+                    <h4 id="blog-form-title" style="margin-bottom: 12px;">Neuen Blogbeitrag erstellen</h4>
+                    <div class="form-group">
+                        <label>Titel</label>
+                        <input type="text" id="blog-title-input" placeholder="Titel des Beitrags">
+                    </div>
+                    <div class="form-group">
+                        <label>Inhalt</label>
+                        <div class="blog-editor">
+                            <div class="blog-toolbar">
+                                <button type="button" class="blog-toolbar-btn" data-format="bold">**Fett**</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="italic">*Kursiv*</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="heading"># Überschrift</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="quote">> Zitat</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="list">- Liste</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="link">[Link](https://)</button>
+                                <button type="button" class="blog-toolbar-btn" data-format="code">`Code`</button>
+                            </div>
+                            <textarea id="blog-content-input" rows="8" placeholder="Schreibe hier den Blogbeitrag... Unterstützt Markdown und einfache HTML-Tags."></textarea>
+                        </div>
+                        <div class="blog-preview">
+                            <div style="font-size:0.75rem; font-weight:700; color:var(--text-muted); margin-bottom:10px; letter-spacing:0.04em; text-transform:uppercase;">Vorschau</div>
+                            <div id="blog-preview-content">Vorschau erscheint hier...</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <button id="create-blog-btn" class="btn-primary" style="width: auto; display: block;">Beitrag veröffentlichen</button>
+                        <button id="cancel-blog-edit-btn" class="btn-secondary hidden" type="button">Bearbeitung abbrechen</button>
+                    </div>
+                </div>
+
+                <div id="blog-list"></div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Profil & Admin -->
         <div id="tab-profile-content" class="container hidden">
             <div class="card">
                 <h3>Dein Profil</h3>
@@ -360,7 +413,12 @@
                 <div id="saved-locations-management-list" style="margin-top: 10px;"></div>
             </div>
         </div>
+    </div>
 
+    <div style="text-align: center; padding: 10px 16px 80px; font-size: 0.72rem; color: var(--text-muted);">
+        <a href="https://www.flaticon.com/de/kostenlose-icons/hutte" title="Hütte Icons" target="_blank" rel="noopener" style="color: var(--text-muted); text-decoration: none; opacity: 0.8; transition: opacity 0.2s;">
+            Hütte Icons erstellt von kurdanfell - Flaticon
+        </a>
     </div>
 
     <!-- Navigation Bar -->
@@ -368,6 +426,10 @@
         <button id="nav-invite-btn" class="nav-btn active">
             <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             Einladungen
+        </button>
+        <button id="nav-blog-btn" class="nav-btn">
+            <svg class="icon" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v15H6.5A2.5 2.5 0 0 1 4 14.5V4.5A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h8M8 15h5"/></svg>
+            Blog
         </button>
         <button id="nav-chat-btn" class="nav-btn">
             <svg class="icon" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -408,7 +470,7 @@
     </div>
 
     
-<a href="https://www.flaticon.com/de/kostenlose-icons/hutte" title="hütte Icons">Hütte Icons erstellt von kurdanfell - Flaticon</a>
+
 
     <!-- Haupt-Skript -->
     <script type="module" src="app.js"></script>
