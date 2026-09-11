@@ -616,11 +616,23 @@ async function enablePushNotifications() {
     try {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') throw new Error('Berechtigung abgelehnt');
+        let registration;
+        try {
+            registration = await navigator.serviceWorker.register('./sw.js?v=20260911-notifications4', { updateViaCache: 'none' });
+            try {
+                await registration.update();
+            } catch (updateError) {
+                console.warn('Service-Worker-Update übersprungen:', updateError);
+            }
+        } catch (registrationError) {
+            registration = await navigator.serviceWorker.getRegistration('./');
+            if (!registration) throw new Error(`Service Worker konnte nicht registriert werden: ${registrationError.message}`);
+        }
+        if (!registration.active) {
+            registration = await navigator.serviceWorker.ready;
+        }
         const supported = await isSupported();
-        if (!supported) throw new Error('Firebase Messaging wird nicht unterstützt');
-        const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
-        await registration.update();
-        await navigator.serviceWorker.ready;
+        if (!supported) throw new Error('Firebase Messaging wird von diesem Browser nicht unterstützt');
         messaging = messaging || getMessaging(app);
         const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
         if (!token) throw new Error('Kein Push-Token erhalten');
@@ -633,7 +645,8 @@ async function enablePushNotifications() {
         if (status) status.innerText = 'Push-Benachrichtigungen sind auf diesem Gerät aktiv.';
     } catch (error) {
         console.error('FCM-Aktivierung fehlgeschlagen:', error);
-        if (status) status.innerText = `Push fehlgeschlagen (${error.code || error.name || 'Fehler'}): ${error.message}`;
+        const detail = error.code || error.name || 'Fehler';
+        if (status) status.innerText = `Push fehlgeschlagen (${detail}): ${error.message}. Bitte HTTPS, Chrome-Berechtigung und Netzwerk prüfen.`;
     }
 }
 
@@ -713,8 +726,12 @@ function initApp() {
 async function initForegroundNotifications() {
     if (!FCM_VAPID_KEY || !('serviceWorker' in navigator)) return;
     try {
-        const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
-        await registration.update();
+        const registration = await navigator.serviceWorker.register('./sw.js?v=20260911-notifications4', { updateViaCache: 'none' });
+        try {
+            await registration.update();
+        } catch (updateError) {
+            console.warn('Service-Worker-Update übersprungen:', updateError);
+        }
         if (!(await isSupported())) return;
         messaging = messaging || getMessaging(app);
         onMessage(messaging, (payload) => {
