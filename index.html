@@ -19,7 +19,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script defer src="https://npmcdn.com/flatpickr/dist/l10n/de.js"></script>
     <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
     <style>
         :root {
@@ -148,6 +147,9 @@
         .admin-tag-option { display: inline-flex; align-items: center; gap: 7px; padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-container); color: var(--text); font-weight: 500; cursor: pointer; transition: border-color 120ms ease, background-color 120ms ease; }
         .admin-tag-option:has(input:checked) { border-color: var(--primary); background: var(--primary-light); color: var(--primary-dark); }
         .admin-tag-option:hover { border-color: var(--primary); }
+        .notification-settings-grid { display: grid; gap: 7px; }
+        .notification-option { display: flex; align-items: center; gap: 9px; min-height: 30px; color: var(--text); font-size: 0.85rem; cursor: pointer; }
+        .notification-option input[type="checkbox"] { flex-basis: 18px; }
         button.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
         button.btn-primary:active { background: var(--primary-dark); }
         button.btn-secondary { background: var(--background); color: var(--text); border: 1px solid var(--border-strong); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500; cursor: pointer; }
@@ -560,6 +562,22 @@
                 </div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Angemeldet als: <strong id="header-user-badge" style="color: var(--text);"></strong></p>
                 <div style="margin-top: 10px; font-size: 0.9rem;">Zugewiesene Gruppen: <div id="user-profile-tags" style="margin-top: 6px;"></div></div>
+
+                <div class="notification-settings" style="margin-top: 20px; border-top: 1px solid var(--border-strong); padding-top: 16px;">
+                    <h4 style="font-size: 0.95rem; margin-bottom: 6px;">Benachrichtigungen</h4>
+                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Wähle, worüber du bei neuen oder geänderten Inhalten informiert werden möchtest.</p>
+                    <div class="notification-settings-grid">
+                        <label class="notification-option"><input type="checkbox" id="notify-push-enabled"><span>Push-Benachrichtigungen</span></label>
+                        <label class="notification-option"><input type="checkbox" id="notify-email-enabled"><span>E-Mail-Benachrichtigungen</span></label>
+                        <label class="notification-option"><input type="checkbox" id="notify-blog"><span>Neue und geänderte Blogbeiträge</span></label>
+                        <label class="notification-option"><input type="checkbox" id="notify-chat"><span>Neue Chatnachrichten</span></label>
+                        <label class="notification-option"><input type="checkbox" id="notify-invitations"><span>Neue und geänderte Einladungen</span></label>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px;">
+                        <button id="enable-push-btn" class="small-btn" type="button">Push auf diesem Gerät aktivieren</button>
+                        <span id="notification-status" style="font-size:0.78rem; color:var(--text-muted);"></span>
+                    </div>
+                </div>
 
                 <div style="margin-top: 20px; border-top: 1px solid var(--border-strong); padding-top: 16px;">
                     <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">E-MAIL ÄNDERN</label>

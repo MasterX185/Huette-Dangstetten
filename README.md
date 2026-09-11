@@ -40,6 +40,7 @@ A full-featured, mobile-first web application designed for group coordination, r
 * **Expressive App Shell:** Theme-aware app bar and drawer menu with a link to the HüttenPortal landing page.
 * **Dark Mode:** Toggleable dark theme with system preference fallback and local persistence.
 * **Performance:** Static lightweight backgrounds, reduced blur cost, deferred third-party scripts, and guarded Firebase listener initialization.
+* **Notifications:** Per-user settings for push and email preferences, Firebase Cloud Messaging device-token registration, and background push handling through the service worker.
 
 ---
 
@@ -87,13 +88,28 @@ const firebaseConfig = {
     appId: "YOUR_APP_ID"
 };
 
-// EmailJS Initialization (app.js)
-emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
 ```
 
-Ensure your Service ID and Template ID match your `emailjs.send()` logic in `createNewInvitation()` and `updateAndResendInvitation()`.
+Der Einladungs- und Benachrichtigungsversand läuft über den Cloudflare Worker. Dafür wird das vorhandene EmailJS-Template `template_rl8z3ur` mit `to_email`, `subject`, `message`, `from_name` und `reply_to` verwendet.
 
-### 3. Initializing the First Admin User
+### 3. Push-Benachrichtigungen aktivieren
+1. In der Firebase Console unter **Project settings > Cloud Messaging > Web configuration** einen Web-Push-Schlüssel erstellen.
+2. Den öffentlichen Schlüssel als `FCM_VAPID_KEY` in `app.js` eintragen. Der Schlüssel ist öffentlich und darf im Frontend stehen.
+3. Die App über HTTPS (oder lokal über `localhost`) ausliefern und im Profil **Push auf diesem Gerät aktivieren** auswählen.
+4. Der Client ruft beim Erstellen oder Ändern von Blogs, Chats und Einladungen den produktiven Worker auf. Der Worker versendet danach auch an offline befindliche Geräte.
+
+Die Benachrichtigungseinstellungen werden im jeweiligen `users/{uid}`-Dokument unter `notificationPreferences` gespeichert. Geräte-Tokens liegen im Feld `fcmTokens`.
+
+### 4. Cloudflare Worker konfigurieren
+Der Worker ist unter `https://huettenportal-image-worker.j-s-schulze.workers.dev` deployed. Für den Versand müssen einmalig im Verzeichnis `image-worker/` folgende Werte gesetzt werden:
+
+```bash
+npx wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
+```
+
+Als Wert wird der komplette JSON-Inhalt eines Firebase-Service-Accounts eingegeben. Das JSON niemals committen oder in `wrangler.toml` eintragen. Der Worker verwendet zusätzlich die Variablen `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID` und `EMAILJS_PUBLIC_KEY` aus `wrangler.toml`.
+
+### 5. Initializing the First Admin User
 By default, newly registered users receive the `user` role. To elevate an account to **Admin**:
 
 1. Register an account through the app UI or Google Sign-In.

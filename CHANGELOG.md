@@ -35,6 +35,12 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 
 ### Geändert
 
+- Cloudflare Worker um geschützten `/notify`-Endpunkt für FCM und E-Mail erweitert
+- Blog-, Chat- und Einladungsvorgänge an den Benachrichtigungsversand angebunden
+- Einladungs-E-Mails vom Client in den Worker verlagert, um Doppelversand zu vermeiden
+- Benachrichtigungseinstellungen für Push, E-Mail, Blog, Chat und Einladungen ergänzt
+- Firebase-Cloud-Messaging-Tokenregistrierung und Hintergrund-Pushs im Service Worker vorbereitet
+- Benachrichtigungspräferenzen werden pro Nutzer in Firestore gespeichert
 - App-Navigation von Bottom-Navigation auf Drawer-Menü umgestellt
 - Blog- und Chatdarstellung für Profilbilder erweitert
 - Hintergrundanimation und Glasunschärfe für bessere Performance reduziert

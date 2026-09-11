@@ -7,11 +7,9 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
-    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs
+    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-// Initialize EmailJS
-emailjs.init("CFQLo5C6SDyav2WuP");
+import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCLhOlcwKeqtdNNF_HrFA0xavgOgZjHMPw",
@@ -24,6 +22,8 @@ const firebaseConfig = {
 
 // Nach dem Deploy auf die URL deines Workers setzen.
 const IMAGE_UPLOAD_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/upload";
+const NOTIFICATION_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/notify";
+const FCM_VAPID_KEY = "BHjSdPkGysO0AcZT_zgMdUERRCazci0Eob6vC7geQHe_RhkAUCy7zsdwSi36h7VpzxuV8qbd6DO-fUw4EI-majw";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -42,6 +42,15 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 let appInitialized = false;
+let messaging = null;
+
+const DEFAULT_NOTIFICATION_PREFERENCES = {
+    pushEnabled: false,
+    emailEnabled: true,
+    blog: true,
+    chat: true,
+    invitations: true
+};
 
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -76,12 +85,18 @@ async function ensureUserDocument(user) {
             name: user.displayName || user.email.split('@')[0] || 'Google-Nutzer',
             email: user.email,
             role: 'user',
-            tags: []
+            tags: [],
+            notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES }
         };
         await setDoc(userRef, newUserData);
         return newUserData;
     }
-    return userDoc.data();
+    const data = userDoc.data();
+    if (!data.notificationPreferences) {
+        await updateDoc(userRef, { notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES } });
+        data.notificationPreferences = { ...DEFAULT_NOTIFICATION_PREFERENCES };
+    }
+    return data;
 }
 
 getRedirectResult(auth).then(async (result) => {
@@ -554,7 +569,89 @@ function updateUIForCurrentUser() {
     });
 
     renderProfileTags();
+    renderNotificationSettings();
 }
+
+const notificationPreferenceFields = {
+    pushEnabled: 'notify-push-enabled',
+    emailEnabled: 'notify-email-enabled',
+    blog: 'notify-blog',
+    chat: 'notify-chat',
+    invitations: 'notify-invitations'
+};
+
+function renderNotificationSettings() {
+    const preferences = { ...DEFAULT_NOTIFICATION_PREFERENCES, ...(currentUserData?.notificationPreferences || {}) };
+    Object.entries(notificationPreferenceFields).forEach(([key, id]) => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) checkbox.checked = Boolean(preferences[key]);
+    });
+    const status = document.getElementById('notification-status');
+    if (status && !FCM_VAPID_KEY) status.innerText = 'Push benötigt noch einen Firebase Web-Push-Schlüssel.';
+}
+
+async function saveNotificationPreferences() {
+    if (!auth.currentUser) return;
+    const notificationPreferences = {};
+    Object.entries(notificationPreferenceFields).forEach(([key, id]) => {
+        notificationPreferences[key] = Boolean(document.getElementById(id)?.checked);
+    });
+    await updateDoc(doc(db, 'users', auth.currentUser.uid), { notificationPreferences });
+    currentUserData.notificationPreferences = notificationPreferences;
+    const status = document.getElementById('notification-status');
+    if (status) status.innerText = 'Einstellungen gespeichert.';
+}
+
+async function enablePushNotifications() {
+    const status = document.getElementById('notification-status');
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        if (status) status.innerText = 'Push wird von diesem Browser nicht unterstützt.';
+        return;
+    }
+    if (!FCM_VAPID_KEY) {
+        if (status) status.innerText = 'Bitte zuerst FCM_VAPID_KEY in app.js eintragen.';
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') throw new Error('Berechtigung abgelehnt');
+        const supported = await isSupported();
+        if (!supported) throw new Error('Firebase Messaging wird nicht unterstützt');
+        const registration = await navigator.serviceWorker.register('./sw.js');
+        messaging = messaging || getMessaging(app);
+        const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+        if (!token) throw new Error('Kein Push-Token erhalten');
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
+            fcmTokens: arrayUnion(token),
+            'notificationPreferences.pushEnabled': true
+        });
+        currentUserData.notificationPreferences = { ...currentUserData.notificationPreferences, pushEnabled: true };
+        document.getElementById('notify-push-enabled').checked = true;
+        if (status) status.innerText = 'Push-Benachrichtigungen sind auf diesem Gerät aktiv.';
+    } catch (error) {
+        if (status) status.innerText = `Push konnte nicht aktiviert werden: ${error.message}`;
+    }
+}
+
+async function dispatchNotifications(type, recipientUids, title, body, data = {}) {
+    if (!auth.currentUser || !recipientUids?.length) return;
+    try {
+        const token = await auth.currentUser.getIdToken();
+        await fetch(NOTIFICATION_WORKER_URL, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type, recipientUids, title, body, data })
+        });
+    } catch (error) {
+        console.warn('Benachrichtigungen konnten nicht ausgelöst werden:', error);
+    }
+}
+
+Object.values(notificationPreferenceFields).forEach(id => {
+    document.getElementById(id)?.addEventListener('change', saveNotificationPreferences);
+});
+document.getElementById('enable-push-btn')?.addEventListener('click', enablePushNotifications);
 
 document.getElementById('change-email-btn').addEventListener('click', async () => {
     const newEmail = document.getElementById('new-email-input').value.trim();
@@ -607,6 +704,27 @@ function initApp() {
     loadLocations();
     loadInvitations();
     loadBlogs();
+    initForegroundNotifications();
+}
+
+async function initForegroundNotifications() {
+    if (!FCM_VAPID_KEY || !('serviceWorker' in navigator)) return;
+    try {
+        if (!(await isSupported())) return;
+        messaging = messaging || getMessaging(app);
+        onMessage(messaging, (payload) => {
+            if (Notification.permission !== 'granted') return;
+            const title = payload.notification?.title || 'HüttenPortal';
+            const options = {
+                body: payload.notification?.body || 'Es gibt neue Aktivitäten.',
+                icon: './icon.png',
+                data: payload.data || {}
+            };
+            new Notification(title, options);
+        });
+    } catch (error) {
+        console.warn('Foreground-Push konnte nicht initialisiert werden:', error);
+    }
 }
 
 function initMap() {
@@ -1033,14 +1151,16 @@ document.getElementById('create-blog-btn')?.addEventListener('click', async () =
                 updatedAt: serverTimestamp()
             });
             alert('Blogbeitrag erfolgreich aktualisiert!');
+            await dispatchNotifications('blog', usersList.map(user => user.id), 'Blogbeitrag aktualisiert', title, { blogId });
         } else {
-            await addDoc(collection(db, 'blogs'), {
+            const blogRef = await addDoc(collection(db, 'blogs'), {
                 title,
                 content,
                 author: currentUserData.name || auth.currentUser.email,
                 createdAt: serverTimestamp()
             });
             alert('Blogbeitrag erfolgreich veröffentlicht!');
+            await dispatchNotifications('blog', usersList.map(user => user.id), 'Neuer Blogbeitrag', title, { blogId: blogRef.id });
         }
 
         resetBlogForm();
@@ -1208,7 +1328,7 @@ async function createNewInvitation() {
     const recipientEmails = selectedUsers.map(u => u.email);
 
     try {
-        await addDoc(collection(db, "invitations"), {
+        const invitationRef = await addDoc(collection(db, "invitations"), {
             createdBy: auth.currentUser.email,
             recipients: recipientEmails,
             datetime,
@@ -1218,21 +1338,7 @@ async function createNewInvitation() {
             createdAt: serverTimestamp()
         });
 
-        for (const user of selectedUsers) {
-            let personalizedMessage = messageTemplate
-            .replace(/{{name}}/g, user.name || 'Teilnehmer')
-            .replace(/{{datetime}}/g, datetime)
-            .replace(/{{sender}}/g, currentUserData.name || auth.currentUser.email)
-            .replace(/{{mapsUrl}}/g, mapsUrl);
-
-            await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
-                to_email: user.email,
-                subject: subjectTemplate,
-                message: personalizedMessage,
-                from_name: currentUserData.name || 'Hütten-Admin',
-                reply_to: currentUserData.email || auth.currentUser.email
-            });
-        }
+        await dispatchNotifications('invitations', selectedUsers.map(user => user.id), subjectTemplate || 'Neue Einladung', messageTemplate || datetime, { invitationId: invitationRef.id, datetime, mapsUrl });
 
         alert('Einladungen erfolgreich und personalisiert versendet!');
     } catch (err) {
@@ -1266,21 +1372,7 @@ window.updateAndResendInvitation = async (invId) => {
             updatedAt: serverTimestamp()
         });
 
-        for (const user of selectedUsers) {
-            let personalizedMessage = messageTemplate
-            .replace(/{{name}}/g, user.name || 'Teilnehmer')
-            .replace(/{{datetime}}/g, datetime)
-            .replace(/{{sender}}/g, currentUserData.name || auth.currentUser.email)
-            .replace(/{{mapsUrl}}/g, mapsUrl);
-
-            await emailjs.send("service_oxlrwkl", "template_rl8z3ur", {
-                to_email: user.email,
-                subject: subjectTemplate,
-                message: personalizedMessage,
-                from_name: currentUserData.name || 'Hütten-Admin',
-                reply_to: currentUserData.email || auth.currentUser.email
-            });
-        }
+        await dispatchNotifications('invitations', selectedUsers.map(user => user.id), subjectTemplate || 'Einladung aktualisiert', messageTemplate || datetime, { invitationId: invId, datetime, mapsUrl });
 
         resetSendButtonToCreate();
         alert('Einladung erfolgreich aktualisiert und versendet!');
@@ -1515,6 +1607,15 @@ async function sendChatMessage() {
         senderName: currentUserData ? currentUserData.name : auth.currentUser.email,
         createdAt: serverTimestamp()
     });
+
+    const recipientUids = usersList
+        .filter(user => user.id !== auth.currentUser.uid && (
+            currentChatRoom === 'global' ||
+            (currentChatRoom.startsWith('tag_') && (user.tags || []).includes(currentChatRoom.slice(4))) ||
+            (currentChatRoom.startsWith('dm_') && currentChatRoom.includes(user.email))
+        ))
+        .map(user => user.id);
+    await dispatchNotifications('chat', recipientUids, 'Neue Chatnachricht', `${currentUserData?.name || auth.currentUser.email}: ${text}`, { roomId: currentChatRoom });
 }
 
 function renderAdminUsers() {
