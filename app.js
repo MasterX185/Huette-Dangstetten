@@ -618,7 +618,9 @@ async function enablePushNotifications() {
         if (permission !== 'granted') throw new Error('Berechtigung abgelehnt');
         const supported = await isSupported();
         if (!supported) throw new Error('Firebase Messaging wird nicht unterstützt');
-        const registration = await navigator.serviceWorker.register('./sw.js');
+        const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' });
+        await registration.update();
+        await navigator.serviceWorker.ready;
         messaging = messaging || getMessaging(app);
         const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
         if (!token) throw new Error('Kein Push-Token erhalten');
@@ -630,7 +632,8 @@ async function enablePushNotifications() {
         document.getElementById('notify-push-enabled').checked = true;
         if (status) status.innerText = 'Push-Benachrichtigungen sind auf diesem Gerät aktiv.';
     } catch (error) {
-        if (status) status.innerText = `Push konnte nicht aktiviert werden: ${error.message}`;
+        console.error('FCM-Aktivierung fehlgeschlagen:', error);
+        if (status) status.innerText = `Push fehlgeschlagen (${error.code || error.name || 'Fehler'}): ${error.message}`;
     }
 }
 

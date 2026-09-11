@@ -149,7 +149,7 @@ async function sendNotifications(request, env, user) {
     } catch {
         throw new Error("Ungültige Benachrichtigungsdaten");
     }
-    const allowedTypes = new Set(["blog", "chat", "invitations"]);
+    const allowedTypes = new Set(["blog", "chat", "invitations", "test"]);
     if (!allowedTypes.has(payload.type) || !Array.isArray(payload.recipientUids) || payload.recipientUids.length > 100) {
         throw new Error("Ungültige Benachrichtigungsdaten");
     }
@@ -161,7 +161,10 @@ async function sendNotifications(request, env, user) {
     const title = String(payload.title || "HüttenPortal").slice(0, 120);
     const body = String(payload.body || "Es gibt neue Aktivitäten.").slice(0, 500);
     const result = { push: 0, email: 0 };
-    for (const uid of [...new Set(payload.recipientUids)].filter(uid => uid !== user.payload.sub)) {
+    const recipientUids = payload.type === "test"
+        ? [user.payload.sub]
+        : [...new Set(payload.recipientUids)].filter(uid => uid !== user.payload.sub);
+    for (const uid of recipientUids) {
         const recipient = await getUserDocument(uid, accessToken, env);
         if (!recipient) continue;
         if (notificationPreference(recipient, payload.type, "push") && await sendPush(recipient, title, body, payload.data, accessToken, env)) result.push++;
