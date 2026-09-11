@@ -3,8 +3,8 @@
   "short_name": "Hütte",
   "start_url": "https://masterx185.github.io/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#4f46e5",
+  "background_color": "#0b1120",
+  "theme_color": "#111827",
   "icons": [
     {
       "src": "icon.png",

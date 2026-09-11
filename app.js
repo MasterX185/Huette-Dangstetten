@@ -359,6 +359,21 @@ const menuScrim = document.getElementById('menu-scrim');
 const appBarTitle = document.getElementById('app-bar-title');
 const openAppMenuBtn = document.getElementById('open-app-menu-btn');
 const closeAppMenuBtn = document.getElementById('close-app-menu-btn');
+const themeToggleBtn = document.getElementById('theme-toggle-btn');
+const themeToggleState = document.getElementById('theme-toggle-state');
+
+function applyTheme(theme) {
+    const isDark = theme === 'dark';
+    document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+    localStorage.setItem('huettenportal-theme', isDark ? 'dark' : 'light');
+    themeToggleBtn?.setAttribute('aria-pressed', String(isDark));
+    if (themeToggleState) themeToggleState.innerText = isDark ? 'Dunkel' : 'Hell';
+}
+
+applyTheme(document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light');
+themeToggleBtn?.addEventListener('click', () => {
+    applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+});
 
 function setAppMenuOpen(isOpen) {
     appMenu?.classList.toggle('open', isOpen);

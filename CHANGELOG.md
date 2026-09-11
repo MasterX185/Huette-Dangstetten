@@ -11,6 +11,13 @@ Das Format orientiert sich an [Keep a Changelog](https://keepachangelog.com/de/1
 - Weitere Optimierungen der mobilen Chatansicht
 - Erweiterte Profilbild-Verwaltung
 
+### Geändert
+
+- Dark Mode mit System-Voreinstellung und gespeicherter Nutzerauswahl ergänzt
+- App-Shell auf kontrastreiche, theme-fähige Oberflächen umgestellt
+- Bewegte Blur-Hintergründe und teure Glass-Effekte durch statische, leichtere Ebenen ersetzt
+- Fokuszustände für Eingabefelder verbessert
+
 ## [2026-09-11]
 
 ### Hinzugefügt

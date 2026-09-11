@@ -37,8 +37,9 @@ A full-featured, mobile-first web application designed for group coordination, r
 * **Chat Avatars:** Profile images appear in direct-chat lists and beside chat messages, with initials as fallback.
 
 ### 🧭 App Experience
-* **Expressive App Shell:** Frosted-glass app bar and drawer menu with a link to the HüttenPortal landing page.
-* **Performance:** Reduced blur cost, deferred third-party scripts, and guarded Firebase listener initialization.
+* **Expressive App Shell:** Theme-aware app bar and drawer menu with a link to the HüttenPortal landing page.
+* **Dark Mode:** Toggleable dark theme with system preference fallback and local persistence.
+* **Performance:** Static lightweight backgrounds, reduced blur cost, deferred third-party scripts, and guarded Firebase listener initialization.
 
 ---
 
