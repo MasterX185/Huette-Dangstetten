@@ -464,7 +464,6 @@
                                 </div>
                                 <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                                     <input type="file" id="blog-image-file-input" accept="image/*" style="flex:1; min-width:180px;">
-                                    <input type="text" id="blog-image-api-key-input" placeholder="ImgBB API-Key" style="width: 180px;">
                                     <button id="blog-upload-image-btn" type="button" class="small-btn">Upload</button>
                                 </div>
                             </div>
@@ -488,6 +487,17 @@
         <div id="tab-profile-content" class="container hidden">
             <div class="card">
                 <h3>Dein Profil</h3>
+                <div style="display:flex; align-items:center; gap:12px; margin-top:14px;">
+                    <div id="user-profile-avatar" class="room-avatar" style="width:56px; height:56px; font-size:1.1rem; background:var(--primary-light); color:var(--primary-dark);">U</div>
+                    <div>
+                        <strong id="profile-name-display">Profilbild</strong>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Wird auch in Direkt-Chats angezeigt.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                    <input type="file" id="profile-image-file-input" accept="image/*" style="flex:1; min-width:190px;">
+                    <button id="upload-profile-image-btn" class="small-btn" type="button">Profilbild hochladen</button>
+                </div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Angemeldet als: <strong id="header-user-badge" style="color: var(--text);"></strong></p>
                 <div style="margin-top: 10px; font-size: 0.9rem;">Zugewiesene Gruppen: <div id="user-profile-tags" style="margin-top: 6px;"></div></div>
 

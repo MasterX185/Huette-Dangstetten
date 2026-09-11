@@ -22,6 +22,9 @@ const firebaseConfig = {
     appId: "1:700971650309:web:0793b2667578bc8eea7b6c"
 };
 
+// Nach dem Deploy auf die URL deines Workers setzen.
+const IMAGE_UPLOAD_WORKER_URL = "https://huette-dangstetten.j-s-schulze.workers.dev/upload";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -509,6 +512,11 @@ function updateUIForCurrentUser() {
     if (nameEl) nameEl.innerText = currentUserData.name || 'Nutzer';
     if (badgeEl) badgeEl.innerText = currentUserData.name || 'Nutzer';
 
+    const profileName = document.getElementById('profile-name-display');
+    const profileAvatar = document.getElementById('user-profile-avatar');
+    if (profileName) profileName.innerText = currentUserData.name || 'Profilbild';
+    if (profileAvatar) profileAvatar.innerHTML = getAvatarMarkup(currentUserData);
+
     const isAdmin = currentUserData.role === 'admin';
     if (roleBadge) {
         roleBadge.innerText = isAdmin ? 'Admin' : 'User';
@@ -547,6 +555,27 @@ document.getElementById('change-email-btn').addEventListener('click', async () =
 });
 
 document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+
+document.getElementById('upload-profile-image-btn')?.addEventListener('click', async () => {
+    const fileInput = document.getElementById('profile-image-file-input');
+    const file = fileInput?.files?.[0];
+    if (!file || !auth.currentUser) {
+        alert('Bitte ein Bild auswählen.');
+        return;
+    }
+
+    try {
+        const result = await uploadImageToWorker(file, 'profile');
+        await updateDoc(doc(db, 'users', auth.currentUser.uid), { photoURL: result.url });
+        currentUserData.photoURL = result.url;
+        updateUIForCurrentUser();
+        updateChatRoomsList();
+        fileInput.value = '';
+        alert('Profilbild erfolgreich gespeichert.');
+    } catch (err) {
+        alert('Fehler beim Speichern des Profilbilds: ' + err.message);
+    }
+});
 
 function initApp() {
     if (currentUserData && currentUserData.role === 'admin') {
@@ -679,6 +708,13 @@ function escapeHtml(value) {
         .replace(/\"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+
+    function getAvatarMarkup(user, fallback = 'U') {
+        const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
+        return photoUrl
+        ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+        : escapeHtml((user?.name || fallback).slice(0, 1).toUpperCase());
+    }
 
 function renderMarkdownToHtml(markdownText) {
     if (!markdownText) return '';
@@ -871,19 +907,12 @@ window.insertBlogImageUrl = () => {
 
 window.uploadBlogImageToExternalApi = async () => {
     const fileInput = document.getElementById('blog-image-file-input');
-    const keyInput = document.getElementById('blog-image-api-key-input');
     const contentInput = document.getElementById('blog-content-input');
     const file = fileInput?.files?.[0];
-    const apiKey = keyInput?.value.trim();
     if (!file || !contentInput) return alert('Bitte ein Bild auswählen.');
-    if (!apiKey) return alert('Bitte einen ImgBB-API-Key eingeben.');
     try {
-        const formData = new FormData();
-        formData.append('image', file);
-        const response = await fetch(`https://api.imgbb.com/1/upload?key=${encodeURIComponent(apiKey)}`, { method: 'POST', body: formData });
-        const result = await response.json();
-        if (!response.ok || !result?.data?.url) throw new Error(result?.error?.message || 'Bild-Upload fehlgeschlagen.');
-        contentInput.setRangeText(`\n![Bild](${result.data.url})\n`, contentInput.selectionStart, contentInput.selectionEnd, 'end');
+        const result = await uploadImageToWorker(file, 'blog');
+        contentInput.setRangeText(`\n![Bild](${result.url})\n`, contentInput.selectionStart, contentInput.selectionEnd, 'end');
         contentInput.focus();
         fileInput.value = '';
         updateBlogPreview();
@@ -891,6 +920,26 @@ window.uploadBlogImageToExternalApi = async () => {
         alert('Fehler beim Upload: ' + err.message);
     }
 };
+
+async function uploadImageToWorker(file, purpose) {
+    if (IMAGE_UPLOAD_WORKER_URL.includes('YOUR_ACCOUNT')) {
+        throw new Error('IMAGE_UPLOAD_WORKER_URL wurde in app.js noch nicht konfiguriert.');
+    }
+    if (!auth.currentUser) throw new Error('Du musst angemeldet sein.');
+
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('purpose', purpose);
+    const token = await auth.currentUser.getIdToken();
+    const response = await fetch(IMAGE_UPLOAD_WORKER_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+    });
+    const result = await response.json();
+    if (!response.ok || !result?.url) throw new Error(result?.error || 'Bild-Upload fehlgeschlagen.');
+    return result;
+}
 
 function applyBlogFormat(type) {
     insertBlogMarkdown(type);
@@ -1296,13 +1345,13 @@ function updateChatRoomsList() {
             dmItem.className = `chat-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
             dmItem.dataset.roomId = dmId;
             dmItem.innerHTML = `
-            <div class="room-avatar">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
+            <div class="room-avatar">${getAvatarMarkup(u)}</div>
             <div class="room-meta">
             <div class="room-name">${u.name || 'Unbenannt'}</div>
             <div class="room-sub">${u.email}</div>
             </div>
             `;
-            dmItem.onclick = () => window.switchChatRoom(dmId, u.name || u.email, `Privater Chat`, (u.name ? u.name[0].toUpperCase() : 'U'));
+            dmItem.onclick = () => window.switchChatRoom(dmId, u.name || u.email, `Privater Chat`, getAvatarMarkup(u));
             sidebarList.appendChild(dmItem);
         }
     });
@@ -1459,7 +1508,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
             item.style.borderRadius = 'var(--radius-sm)';
             item.style.border = '1px solid var(--border-strong)';
             item.innerHTML = `
-            <div class="room-avatar">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
+            <div class="room-avatar">${getAvatarMarkup(u)}</div>
             <div class="room-meta">
             <div class="room-name">${u.name || 'Unbenannt'}</div>
             <div class="room-sub">${u.email}</div>
@@ -1467,7 +1516,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
             `;
             item.onclick = () => {
                 const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
-                window.switchChatRoom(dmId, u.name || u.email, 'Privater Chat', (u.name ? u.name[0].toUpperCase() : 'U'));
+                window.switchChatRoom(dmId, u.name || u.email, 'Privater Chat', getAvatarMarkup(u));
                 modal.classList.add('hidden');
             };
             userListContainer.appendChild(item);
