@@ -1523,10 +1523,10 @@ function renderAdminUsers() {
     if (!container) return;
     container.innerHTML = '';
     usersList.forEach(u => {
-        let tagsCheckboxes = '<div style="margin: 6px 0; font-size:0.8rem;"><strong>Gruppen zuweisen:</strong><div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">';
+        let tagsCheckboxes = '<div class="admin-tag-assignment" style="margin: 6px 0; font-size:0.8rem;"><strong>Gruppen zuweisen:</strong><div class="admin-tag-options">';
         tagsList.forEach(t => {
             const hasTag = u.tags && u.tags.includes(t.name);
-            tagsCheckboxes += `<label style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-weight:normal; display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+            tagsCheckboxes += `<label class="admin-tag-option">
             <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${t.name}', this.checked)"> ${t.name}
             </label>`;
         });
