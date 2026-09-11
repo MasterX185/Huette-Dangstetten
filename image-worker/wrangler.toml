@@ -4,7 +4,7 @@ compatibility_date = "2026-09-11"
 
 [vars]
 FIREBASE_PROJECT_ID = "huette-dangstetten-3a737"
-ALLOWED_ORIGIN = "http://localhost:8000"
+ALLOWED_ORIGIN = "https://masterx185.github.io,http://localhost:8000"
 
 # Secrets setzen, niemals hier eintragen:
 # wrangler secret put IMGBB_API_KEY

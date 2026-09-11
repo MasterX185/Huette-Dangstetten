@@ -73,6 +73,9 @@ export default {
         }
 
         const url = new URL(request.url);
+        if (url.pathname === "/" && request.method === "GET") {
+            return json({ status: "ok", service: "HüttenPortal Image Worker", upload: "/upload" }, 200, request, env);
+        }
         if (url.pathname !== "/upload" || request.method !== "POST") {
             return json({ error: "Not found" }, 404, request, env);
         }

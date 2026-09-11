@@ -23,7 +23,7 @@ const firebaseConfig = {
 };
 
 // Nach dem Deploy auf die URL deines Workers setzen.
-const IMAGE_UPLOAD_WORKER_URL = "https://huette-dangstetten.j-s-schulze.workers.dev/upload";
+const IMAGE_UPLOAD_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/upload";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);

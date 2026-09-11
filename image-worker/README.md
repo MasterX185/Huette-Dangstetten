@@ -12,6 +12,6 @@ npx wrangler secret put IMGBB_API_KEY
 npx wrangler deploy
 ```
 
-Danach in `app.js` `IMAGE_UPLOAD_WORKER_URL` auf die ausgegebene Worker-URL mit `/upload` setzen. In `wrangler.toml` muss `ALLOWED_ORIGIN` auf die echte Website-Adresse zeigen. Mehrere Origins werden kommasepariert eingetragen, zum Beispiel `http://localhost:8000,https://deine-app.example`.
+Danach in `app.js` `IMAGE_UPLOAD_WORKER_URL` auf die ausgegebene Worker-URL mit `/upload` setzen. Für GitHub Pages sind aktuell `https://masterx185.github.io` und lokal `http://localhost:8000` als Origins eingetragen. Mehrere Origins werden kommasepariert eingetragen.
 
 Der Worker akzeptiert Firebase-ID-Tokens. Für Bloguploads liest er mit dem authentifizierten Token das eigene Firestore-Dokument `users/{uid}` und prüft `role == "admin"`; Profiluploads sind für alle angemeldeten Nutzer erlaubt.
