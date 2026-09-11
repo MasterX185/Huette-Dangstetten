@@ -31,6 +31,15 @@ A full-featured, mobile-first web application designed for group coordination, r
 * **Custom Tagging System:** Admins can create custom tags and assign them to users to grant channel access.
 * **User Administration:** Admin tools to upgrade/downgrade roles, update tags, or permanently remove accounts.
 
+### 📝 Blog & Profile Images
+* **Admin Blog Editor:** Markdown formatting, live preview, embedded images, and blog editing for admins.
+* **External Image Uploads:** Blog and profile images are uploaded through the Cloudflare Worker; the ImgBB key is never exposed to the browser.
+* **Chat Avatars:** Profile images appear in direct-chat lists and beside chat messages, with initials as fallback.
+
+### 🧭 App Experience
+* **Expressive App Shell:** Frosted-glass app bar and drawer menu with a link to the HüttenPortal landing page.
+* **Performance:** Reduced blur cost, deferred third-party scripts, and guarded Firebase listener initialization.
+
 ---
 
 ## 📱 Tech Stack
@@ -50,6 +59,8 @@ A full-featured, mobile-first web application designed for group coordination, r
 ```text
 ├── index.html        # Main HTML structure, modal views, and CSS variables/styles
 ├── app.js            # Main application logic, Firebase SDK setup, and real-time listeners
+├── image-worker/     # Cloudflare Worker for authenticated external image uploads
+├── CHANGELOG.md      # Chronological project changes
 └── README.md         # Technical documentation and user guide
 ```
 

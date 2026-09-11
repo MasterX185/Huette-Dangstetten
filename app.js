@@ -41,6 +41,7 @@ let currentChatRoom = "global";
 let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
+let appInitialized = false;
 
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -496,6 +497,7 @@ onAuthStateChanged(auth, async (user) => {
         await handleRSVPFromURL();
     } else {
         currentUserData = null;
+        appInitialized = false;
         stopAllListeners();
         authSection.classList.remove('hidden');
         appSection.classList.add('hidden');
@@ -578,6 +580,8 @@ document.getElementById('upload-profile-image-btn')?.addEventListener('click', a
 });
 
 function initApp() {
+    if (appInitialized) return;
+    appInitialized = true;
     if (currentUserData && currentUserData.role === 'admin') {
         initMap();
         initFlatpickr();
@@ -709,17 +713,43 @@ function escapeHtml(value) {
         .replace(/'/g, '&#039;');
 }
 
-    function getAvatarMarkup(user, fallback = 'U') {
-        const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
-        return photoUrl
+function getAvatarMarkup(user, fallback = 'U') {
+    const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
+    return photoUrl
         ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
         : escapeHtml((user?.name || fallback).slice(0, 1).toUpperCase());
-    }
+}
+
+function formatBlogDateTime(type) {
+    const now = new Date();
+    const date = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    if (type === 'date') return date;
+    if (type === 'time') return time;
+    return `${date} ${time}`;
+}
+
+function replaceBlogTokens(value) {
+    return String(value || '').replace(/\{\{\s*(date|time|datetime)\s*\}\}/gi, (_, token) => formatBlogDateTime(token.toLowerCase()));
+}
+
+function formatBlogInline(value) {
+    return escapeHtml(value)
+        .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi, '<img src="$2" alt="$1" loading="lazy">')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/__(.+?)__/g, '<strong>$1</strong>')
+        .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+        .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+        .replace(/~~(.+?)~~/g, '<del>$1</del>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\n/g, '<br>');
+}
 
 function renderMarkdownToHtml(markdownText) {
     if (!markdownText) return '';
 
-    let html = escapeHtml(markdownText)
+    let html = replaceBlogTokens(markdownText)
         .replace(/\r\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n');
 
@@ -731,34 +761,37 @@ function renderMarkdownToHtml(markdownText) {
         if (/^#{1,6}\s/.test(trimmed)) {
             const level = trimmed.match(/^#+/)[0].length;
             const text = trimmed.replace(/^#{1,6}\s*/, '');
-            return `<h${level}>${text}</h${level}>`;
+            return `<h${level}>${formatBlogInline(text)}</h${level}>`;
         }
 
         if (/^>\s?/.test(trimmed)) {
             const quote = trimmed.replace(/^>\s?/gm, '');
-            return `<blockquote>${quote}</blockquote>`;
+            return `<blockquote>${formatBlogInline(quote)}</blockquote>`;
+        }
+
+        if (/^---+$/.test(trimmed)) {
+            return '<hr>';
+        }
+
+        if (/^!\[[^\]]*\]\(https?:\/\/[^\s)]+\)$/i.test(trimmed)) {
+            return `<figure>${formatBlogInline(trimmed)}</figure>`;
         }
 
         if (/^[-*+]\s+/.test(trimmed)) {
-            const items = trimmed.split(/\n[-*+]\s+/).map(item => `<li>${item}</li>`).join('');
+            const items = trimmed.split(/\n(?=[-*+]\s+)/).map(item => item.replace(/^[-*+]\s+/, '')).map(item => `<li>${formatBlogInline(item)}</li>`).join('');
             return `<ul>${items}</ul>`;
         }
 
         if (/^\d+\.\s+/.test(trimmed)) {
-            const items = trimmed.split(/\n\d+\.\s+/).map(item => `<li>${item}</li>`).join('');
+            const items = trimmed.split(/\n(?=\d+\.\s+)/).map(item => item.replace(/^\d+\.\s+/, '')).map(item => `<li>${formatBlogInline(item)}</li>`).join('');
             return `<ol>${items}</ol>`;
         }
 
         if (/^```/.test(trimmed)) {
-            return `<pre><code>${trimmed.replace(/^```\w*\n?|```$/g, '')}</code></pre>`;
+            return `<pre><code>${escapeHtml(trimmed.replace(/^```\w*\n?|```$/g, ''))}</code></pre>`;
         }
 
-        return `<p>${trimmed
-            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-            .replace(/\*(.+?)\*/g, '<em>$1</em>')
-            .replace(/`([^`]+)`/g, '<code>$1</code>')
-            .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-            .replace(/\n/g, '<br>')}</p>`;
+        return `<p>${formatBlogInline(trimmed)}</p>`;
     });
 
     return formatted.join('');
@@ -768,7 +801,6 @@ function renderBlogContent(content) {
     const normalized = String(content || '');
     if (!normalized.trim()) return '<p>Kein Inhalt vorhanden.</p>';
 
-    const lower = normalized.toLowerCase();
     const hasHtml = /<\s*(p|div|h[1-6]|ul|ol|li|strong|em|a|blockquote|img|code|pre|br)\b/i.test(normalized);
 
     if (hasHtml) {
@@ -777,7 +809,7 @@ function renderBlogContent(content) {
             .replace(/on\w+="[^"]*"/gi, '')
             .replace(/on\w+='[^']*'/gi, '')
             .replace(/href="javascript:[^"]*"/gi, 'href="#"');
-        return safeHtml;
+        return replaceBlogTokens(safeHtml);
     }
 
     return renderMarkdownToHtml(normalized);
@@ -1398,15 +1430,30 @@ window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
         snapshot.forEach(docSnap => {
             const msg = docSnap.data();
             const isMe = auth.currentUser && auth.currentUser.email === msg.senderEmail;
+            const sender = isMe
+                ? currentUserData
+                : usersList.find(user => user.email === msg.senderEmail) || { name: msg.senderName || msg.senderEmail };
+            const row = document.createElement('div');
+            row.className = `message-row ${isMe ? 'mine' : ''}`;
             const msgDiv = document.createElement('div');
             msgDiv.className = `message-bubble ${isMe ? 'my-message' : 'other-message'}`;
             const timeStr = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
             msgDiv.innerHTML = `
-            ${!isMe ? `<div class="msg-sender">${msg.senderName || msg.senderEmail}</div>` : ''}
-            <div>${msg.text}</div>
+            ${!isMe ? `<div class="msg-sender">${escapeHtml(msg.senderName || msg.senderEmail)}</div>` : ''}
+            <div>${escapeHtml(msg.text || '')}</div>
             <div class="msg-time">${timeStr}</div>
             `;
-            container.appendChild(msgDiv);
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = getAvatarMarkup(sender);
+            if (isMe) {
+                row.appendChild(msgDiv);
+                row.appendChild(avatar);
+            } else {
+                row.appendChild(avatar);
+                row.appendChild(msgDiv);
+            }
+            container.appendChild(row);
         });
         container.scrollTop = container.scrollHeight;
     });
