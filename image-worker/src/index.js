@@ -215,6 +215,37 @@ async function findEventRequest(accessKey, accessToken, env) {
     return document || null;
 }
 
+async function getAdminUsers(accessToken, env) {
+    const result = await firestoreApi(":runQuery", {
+        method: "POST",
+        body: JSON.stringify({ structuredQuery: {
+            from: [{ collectionId: "users" }],
+            where: { fieldFilter: { field: { fieldPath: "role" }, op: "EQUAL", value: { stringValue: "admin" } } },
+            limit: 100
+        } })
+    }, accessToken, env);
+    return result.filter(item => item.document).map(item => firestoreDocument(item.document));
+}
+
+async function notifyEventAdmins(eventRequest, accessToken, env) {
+    try {
+        const admins = await getAdminUsers(accessToken, env);
+        const subject = "Neue Event-Anfrage";
+        const body = `${eventRequest.name} hat für den ${eventRequest.eventDate} eine Event-Anfrage gestellt.\n\n${eventRequest.details}`;
+        await Promise.all(admins.filter(admin => notificationPreference(admin, "eventRequests")).map(admin => sendEmail(admin, subject, body, env)));
+    } catch (error) {
+        console.warn("Admin-Benachrichtigung für Event-Anfrage fehlgeschlagen", error);
+    }
+}
+
+async function notifyEventRequester(eventRequest, subject, body, env) {
+    try {
+        await sendEmail({ email: eventRequest.email }, subject, body, env);
+    } catch (error) {
+        console.warn("E-Mail an Anfrager fehlgeschlagen", error);
+    }
+}
+
 async function getEventMessages(requestId, accessToken, env) {
     const result = await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}/messages?orderBy=createdAt&pageSize=100`, { method: "GET" }, accessToken, env);
     return (result.documents || []).map(document => ({ id: eventRequestId(document), ...firestoreDocument(document) }));
@@ -250,7 +281,9 @@ async function createEventRequest(payload, env) {
         method: "POST",
         body: JSON.stringify({ fields: firestoreFields({ name, email, eventDate, details, status: "neu", adminNote: "", accessKeyHash: await hashAccessKey(accessKey), createdAt: new Date().toISOString() }) })
     }, token, env);
-    return { accessKey, ...(await eventRequestResponse(document, token, env)) };
+    const response = await eventRequestResponse(document, token, env);
+    await notifyEventAdmins(response.request, token, env);
+    return { accessKey, ...response };
 }
 
 async function addEventMessage(requestId, sender, text, accessToken, env) {
@@ -287,6 +320,8 @@ async function handleEventRequest(request, env) {
     if (payload.action === "admin-detail") return eventRequestResponse(document, token, env);
     if (payload.action === "admin-message") {
         await addEventMessage(requestId, "admin", payload.text, token, env);
+        const eventRequest = firestoreDocument(document);
+        await notifyEventRequester(eventRequest, "Neue Nachricht zu deiner Event-Anfrage", `Das HüttenPortal-Team schreibt:\n\n${eventValue(payload.text, 2000)}`, env);
         return eventRequestResponse(document, token, env);
     }
     if (payload.action === "admin-update") {
@@ -297,7 +332,9 @@ async function handleEventRequest(request, env) {
             body: JSON.stringify({ fields: firestoreFields({ status, adminNote: eventValue(payload.adminNote, 2000) }) })
         }, token, env);
         const updatedDocument = await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}`, { method: "GET" }, token, env);
-        return eventRequestResponse(updatedDocument, token, env);
+        const response = await eventRequestResponse(updatedDocument, token, env);
+        await notifyEventRequester(response.request, "Status deiner Event-Anfrage wurde aktualisiert", `Neuer Status: ${response.request.status}${response.request.adminNote ? `\n\nNachricht vom Team:\n${response.request.adminNote}` : ""}`, env);
+        return response;
     }
     throw new Error("Unbekannte Anfrage.");
 }

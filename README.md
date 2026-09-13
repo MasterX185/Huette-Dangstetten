@@ -26,7 +26,7 @@ A full-featured, mobile-first web application designed for group coordination, r
 * **Interactive Maps:** Integrated Leaflet / OpenStreetMap controls to set precise location pins or select from pre-saved locations.
 * **URL & In-App RSVP:** Invited users can confirm (`Yes`) or decline (`No`) directly from email links or within the dashboard.
 * **Live Guest List:** Real-time visibility into current responses and guest attendance counts.
-* **Public Event Requests:** Visitors can submit an event request without an account. They receive a private key that grants access only to that request's status and its conversation with administrators.
+* **Public Event Requests:** Visitors can submit an event request without an account. They receive a private key that grants access only to that request's status and its conversation with administrators. Admins can opt into emails for new requests; requesters receive emails when the team replies or changes the request status.
 
 ### Role-Based Access Control (RBAC) & User Management
 * **User Roles:** Distinct privileges for standard `user` and `admin` roles.

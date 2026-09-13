@@ -48,7 +48,8 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
     emailEnabled: true,
     blog: true,
     chat: true,
-    invitations: true
+    invitations: true,
+    eventRequests: true
 };
 
 async function handleRSVPFromURL() {
@@ -403,7 +404,7 @@ function selectAppMenuTab(tabName) {
         blog: [navBlogBtn, tabBlogContent, 'Blog'],
         chat: [navChatBtn, tabChatContent, 'Chat'],
         profile: [navProfileBtn, tabProfileContent, 'Profil & Verwaltung'],
-        eventRequests: [menuEventRequestsBtn, tabEventRequestsContent, 'Event-Anfragen']
+        'event-requests': [menuEventRequestsBtn, tabEventRequestsContent, 'Event-Anfragen']
     };
     const target = tabMap[tabName];
     if (!target) return;
@@ -709,7 +710,8 @@ const notificationPreferenceFields = {
     emailEnabled: 'notify-email-enabled',
     blog: 'notify-blog',
     chat: 'notify-chat',
-    invitations: 'notify-invitations'
+    invitations: 'notify-invitations',
+    eventRequests: 'notify-event-requests'
 };
 
 function renderNotificationSettings() {
@@ -727,7 +729,7 @@ function setEmailNotificationOptionsEnabled(enabled) {
         options.classList.toggle('notification-options-disabled', !enabled);
         options.setAttribute('aria-disabled', String(!enabled));
     }
-    ['notify-blog', 'notify-chat', 'notify-invitations'].forEach(id => {
+    ['notify-blog', 'notify-chat', 'notify-invitations', 'notify-event-requests'].forEach(id => {
         const checkbox = document.getElementById(id);
         if (checkbox) checkbox.disabled = !enabled;
     });
@@ -759,7 +761,7 @@ async function dispatchNotifications(type, recipientUids, title, body, data = {}
     }
 }
 
-['notify-blog', 'notify-chat', 'notify-invitations'].forEach(id => {
+['notify-blog', 'notify-chat', 'notify-invitations', 'notify-event-requests'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', saveNotificationPreferences);
 });
 document.getElementById('notify-email-enabled')?.addEventListener('change', (event) => {
