@@ -158,6 +158,150 @@ async function sendNotifications(request, env, user) {
     return result;
 }
 
+function firestoreField(value) {
+    if (typeof value === "string") return { stringValue: value };
+    if (typeof value === "boolean") return { booleanValue: value };
+    if (typeof value === "number") return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+    if (Array.isArray(value)) return { arrayValue: { values: value.map(firestoreField) } };
+    if (value && typeof value === "object") return { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([key, item]) => [key, firestoreField(item)])) } };
+    return { nullValue: null };
+}
+
+function firestoreFields(data) {
+    return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, firestoreField(value)]));
+}
+
+function eventValue(value, maxLength = 1000) {
+    return String(value || "").trim().slice(0, maxLength);
+}
+
+async function hashAccessKey(accessKey) {
+    const bytes = new TextEncoder().encode(accessKey);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function createAccessKey() {
+    const bytes = crypto.getRandomValues(new Uint8Array(18));
+    return [...bytes].map(byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase().match(/.{1,6}/g).join("-");
+}
+
+function eventRequestId(document) {
+    return document?.name?.split("/").pop() || "";
+}
+
+async function firestoreApi(path, options, accessToken, env) {
+    const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents${path}`;
+    const response = await fetch(url, {
+        ...options,
+        headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json", ...(options.headers || {}) }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error?.message || "Firestore-Anfrage fehlgeschlagen");
+    return data;
+}
+
+async function findEventRequest(accessKey, accessToken, env) {
+    const keyHash = await hashAccessKey(eventValue(accessKey, 100));
+    const result = await firestoreApi(":runQuery", {
+        method: "POST",
+        body: JSON.stringify({ structuredQuery: {
+            from: [{ collectionId: "eventRequests" }],
+            where: { fieldFilter: { field: { fieldPath: "accessKeyHash" }, op: "EQUAL", value: { stringValue: keyHash } } },
+            limit: 1
+        } })
+    }, accessToken, env);
+    const document = result.find(item => item.document)?.document;
+    return document || null;
+}
+
+async function getEventMessages(requestId, accessToken, env) {
+    const result = await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}/messages?orderBy=createdAt&pageSize=100`, { method: "GET" }, accessToken, env);
+    return (result.documents || []).map(document => ({ id: eventRequestId(document), ...firestoreDocument(document) }));
+}
+
+async function eventRequestResponse(document, accessToken, env) {
+    const request = firestoreDocument(document);
+    return {
+        request: {
+            id: eventRequestId(document),
+            name: request.name,
+            email: request.email,
+            eventDate: request.eventDate,
+            details: request.details,
+            status: request.status || "neu",
+            adminNote: request.adminNote || "",
+            createdAt: request.createdAt
+        },
+        messages: await getEventMessages(eventRequestId(document), accessToken, env)
+    };
+}
+
+async function createEventRequest(payload, env) {
+    const name = eventValue(payload.name, 120);
+    const email = eventValue(payload.email, 254);
+    const eventDate = eventValue(payload.eventDate, 32);
+    const details = eventValue(payload.details, 2000);
+    if (!name || !email || !eventDate || !details || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("Bitte fülle Name, E-Mail, Datum und Beschreibung aus.");
+    const accessKey = createAccessKey();
+    const id = crypto.randomUUID();
+    const { token } = await getGoogleAccessToken(env);
+    const document = await firestoreApi(`/eventRequests?documentId=${encodeURIComponent(id)}`, {
+        method: "POST",
+        body: JSON.stringify({ fields: firestoreFields({ name, email, eventDate, details, status: "neu", adminNote: "", accessKeyHash: await hashAccessKey(accessKey), createdAt: new Date().toISOString() }) })
+    }, token, env);
+    return { accessKey, ...(await eventRequestResponse(document, token, env)) };
+}
+
+async function addEventMessage(requestId, sender, text, accessToken, env) {
+    const cleanText = eventValue(text, 2000);
+    if (!cleanText) throw new Error("Die Nachricht darf nicht leer sein.");
+    await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ fields: firestoreFields({ sender, text: cleanText, createdAt: new Date().toISOString() }) })
+    }, accessToken, env);
+}
+
+async function handleEventRequest(request, env) {
+    const payload = await request.json();
+    if (payload.action === "create") return createEventRequest(payload, env);
+
+    if (payload.action === "guest-status" || payload.action === "guest-message") {
+        const { token } = await getGoogleAccessToken(env);
+        const document = await findEventRequest(payload.accessKey, token, env);
+        if (!document) throw new Error("Anfrage-Schlüssel nicht gefunden.");
+        if (payload.action === "guest-message") await addEventMessage(eventRequestId(document), "guest", payload.text, token, env);
+        return eventRequestResponse(document, token, env);
+    }
+
+    const user = await authenticate(request, env);
+    if (!(await isAdminFromFirestore(user.payload.sub, user.token, env))) throw new Error("Nur Admins haben Zugriff auf Anfragen.");
+    const { token } = await getGoogleAccessToken(env);
+    if (payload.action === "admin-list") {
+        const result = await firestoreApi("/eventRequests?orderBy=createdAt%20desc&pageSize=100", { method: "GET" }, token, env);
+        return { requests: (result.documents || []).map(document => ({ id: eventRequestId(document), ...firestoreDocument(document) })) };
+    }
+    const requestId = eventValue(payload.requestId, 100);
+    if (!requestId) throw new Error("Anfrage fehlt.");
+    const document = await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}`, { method: "GET" }, token, env);
+    if (payload.action === "admin-detail") return eventRequestResponse(document, token, env);
+    if (payload.action === "admin-message") {
+        await addEventMessage(requestId, "admin", payload.text, token, env);
+        return eventRequestResponse(document, token, env);
+    }
+    if (payload.action === "admin-update") {
+        const status = eventValue(payload.status, 40);
+        if (!new Set(["neu", "in_pruefung", "angenommen", "abgelehnt"]).has(status)) throw new Error("Ungültiger Status.");
+        await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}?updateMask.fieldPaths=status&updateMask.fieldPaths=adminNote`, {
+            method: "PATCH",
+            body: JSON.stringify({ fields: firestoreFields({ status, adminNote: eventValue(payload.adminNote, 2000) }) })
+        }, token, env);
+        const updatedDocument = await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}`, { method: "GET" }, token, env);
+        return eventRequestResponse(updatedDocument, token, env);
+    }
+    throw new Error("Unbekannte Anfrage.");
+}
+
 export default {
     async fetch(request, env) {
         if (request.method === "OPTIONS") {
@@ -173,10 +317,18 @@ export default {
 
         const url = new URL(request.url);
         if (url.pathname === "/" && request.method === "GET") {
-            return json({ status: "ok", service: "HüttenPortal Worker", upload: "/upload", notify: "/notify" }, 200, request, env);
+            return json({ status: "ok", service: "HüttenPortal Worker", upload: "/upload", notify: "/notify", eventRequest: "/event-request" }, 200, request, env);
         }
-        if (url.pathname !== "/upload" && url.pathname !== "/notify" || request.method !== "POST") {
+        if (!["/upload", "/notify", "/event-request"].includes(url.pathname) || request.method !== "POST") {
             return json({ error: "Not found" }, 404, request, env);
+        }
+
+        if (url.pathname === "/event-request") {
+            try {
+                return json(await handleEventRequest(request, env), 200, request, env);
+            } catch (error) {
+                return json({ error: error.message || "Anfrage konnte nicht verarbeitet werden" }, 400, request, env);
+            }
         }
 
         let user;

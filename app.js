@@ -21,6 +21,7 @@ const firebaseConfig = {
 // Nach dem Deploy auf die URL deines Workers setzen.
 const IMAGE_UPLOAD_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/upload";
 const NOTIFICATION_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/notify";
+const EVENT_REQUEST_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/event-request";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -39,6 +40,9 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 let appInitialized = false;
+let guestRequestSession = null;
+let adminEventRequests = [];
+let activeAdminEventRequest = null;
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
     emailEnabled: true,
@@ -77,8 +81,8 @@ async function ensureUserDocument(user) {
 
     if (!userDoc.exists()) {
         const newUserData = {
-            name: user.displayName || user.email.split('@')[0] || 'Google-Nutzer',
-            email: user.email,
+            name: user.displayName || user.email?.split('@')[0] || 'Neuer Nutzer',
+            email: user.email || '',
             role: 'user',
             tags: [],
             notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES }
@@ -98,7 +102,7 @@ getRedirectResult(auth).then(async (result) => {
     if (result && result.user) await ensureUserDocument(result.user);
 }).catch((error) => {
     const authMessage = document.getElementById('auth-message');
-    if (authMessage) authMessage.innerText = 'Google-Login Fehler: ' + error.message;
+    if (authMessage) authMessage.innerText = 'Anmeldung mit Anbieter fehlgeschlagen: ' + error.message;
 });
 
 function stopAllListeners() {
@@ -339,10 +343,12 @@ const tabInviteContent = document.getElementById('tab-invite-content');
 const tabBlogContent = document.getElementById('tab-blog-content');
 const tabChatContent = document.getElementById('tab-chat-content');
 const tabProfileContent = document.getElementById('tab-profile-content');
+const tabEventRequestsContent = document.getElementById('tab-event-requests-content');
+const menuEventRequestsBtn = document.getElementById('menu-event-requests-btn');
 
 function switchTab(activeBtn, activeContent) {
     [navInviteBtn, navBlogBtn, navChatBtn, navProfileBtn].forEach(b => b && b.classList.remove('active'));
-    [tabInviteContent, tabBlogContent, tabChatContent, tabProfileContent].forEach(c => c && c.classList.add('hidden'));
+    [tabInviteContent, tabBlogContent, tabChatContent, tabProfileContent, tabEventRequestsContent].forEach(c => c && c.classList.add('hidden'));
     activeBtn.classList.add('active');
     activeContent.classList.remove('hidden');
     if (activeBtn === navInviteBtn && map) {
@@ -396,13 +402,15 @@ function selectAppMenuTab(tabName) {
         invite: [navInviteBtn, tabInviteContent, 'Einladungen'],
         blog: [navBlogBtn, tabBlogContent, 'Blog'],
         chat: [navChatBtn, tabChatContent, 'Chat'],
-        profile: [navProfileBtn, tabProfileContent, 'Profil & Verwaltung']
+        profile: [navProfileBtn, tabProfileContent, 'Profil & Verwaltung'],
+        eventRequests: [menuEventRequestsBtn, tabEventRequestsContent, 'Event-Anfragen']
     };
     const target = tabMap[tabName];
     if (!target) return;
 
     switchTab(target[0], target[1]);
     if (target[0] === navProfileBtn) renderProfileTags();
+    if (target[0] === menuEventRequestsBtn) loadAdminEventRequests();
     if (target[0] === navChatBtn && window.innerWidth < 768) {
         document.getElementById('chat-sidebar').style.display = 'flex';
         document.getElementById('chat-main').style.display = 'none';
@@ -490,12 +498,9 @@ if (forgotPasswordBtn) {
     });
 }
 
-googleLoginBtn.addEventListener('click', async () => {
+async function signInWithProvider(provider, providerName) {
     authMessage.innerText = '';
     authMessage.style.color = 'var(--danger)';
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
         const result = await signInWithPopup(auth, provider);
         await ensureUserDocument(result.user);
@@ -504,16 +509,147 @@ googleLoginBtn.addEventListener('click', async () => {
             try {
                 await signInWithRedirect(auth, provider);
             } catch (redirectErr) {
-                authMessage.innerText = 'Google-Login Fehler: ' + redirectErr.message;
+                authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen: ${redirectErr.message}`;
             }
         } else {
-            authMessage.innerText = 'Google-Login Fehler: ' + error.message;
+            authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen: ${error.message}`;
         }
+    }
+}
+
+googleLoginBtn.addEventListener('click', () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    signInWithProvider(provider, 'Google');
+});
+
+async function eventRequestApi(payload, requiresAuth = false) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (requiresAuth) headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
+    const response = await fetch(EVENT_REQUEST_WORKER_URL, { method: 'POST', headers, body: JSON.stringify(payload) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result?.error || 'Anfrage konnte nicht verarbeitet werden.');
+    return result;
+}
+
+const eventRequestModal = document.getElementById('event-request-modal');
+const guestRequestSection = document.getElementById('guest-request-section');
+document.getElementById('open-event-request-btn')?.addEventListener('click', () => eventRequestModal.classList.remove('hidden'));
+document.getElementById('close-event-request-modal-btn')?.addEventListener('click', () => eventRequestModal.classList.add('hidden'));
+
+document.getElementById('event-request-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const resultEl = document.getElementById('event-request-result');
+    resultEl.innerText = 'Anfrage wird gesendet …';
+    try {
+        const result = await eventRequestApi({
+            action: 'create',
+            name: document.getElementById('event-request-name').value,
+            email: document.getElementById('event-request-email').value,
+            eventDate: document.getElementById('event-request-date').value,
+            details: document.getElementById('event-request-details').value
+        });
+        resultEl.innerHTML = `Dein Anfrage-Schlüssel: <strong>${escapeHtml(result.accessKey)}</strong><br>Bitte sicher speichern. Mit ihm kannst du Status und Nachrichten später wieder öffnen.`;
+        document.getElementById('event-access-key-input').value = result.accessKey;
+        document.getElementById('event-request-form').reset();
+    } catch (error) {
+        resultEl.innerText = error.message;
     }
 });
 
+async function openGuestEventRequest(accessKey) {
+    const result = await eventRequestApi({ action: 'guest-status', accessKey });
+    guestRequestSession = { accessKey };
+    sessionStorage.setItem('event-request-access-key', accessKey);
+    authSection.classList.add('hidden');
+    guestRequestSection.classList.remove('hidden');
+    renderGuestEventRequest(result);
+}
+
+function renderGuestEventRequest(data) {
+    const request = data.request;
+    document.getElementById('guest-request-status').innerHTML = `<strong>Status: ${escapeHtml(request.status)}</strong><p style="margin:8px 0 0;">${escapeHtml(request.adminNote || 'Noch keine Rückmeldung vom Team.')}</p>`;
+    const messages = document.getElementById('guest-request-messages');
+    messages.innerHTML = '';
+    (data.messages || []).forEach(message => {
+        const item = document.createElement('div');
+        item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
+        item.innerHTML = `<strong>${message.sender === 'admin' ? 'HüttenPortal-Team' : 'Du'}</strong><br>${escapeHtml(message.text)}`;
+        messages.appendChild(item);
+    });
+    messages.scrollTop = messages.scrollHeight;
+}
+
+document.getElementById('open-event-status-btn')?.addEventListener('click', async () => {
+    const key = document.getElementById('event-access-key-input').value.trim();
+    if (!key) return;
+    try { await openGuestEventRequest(key); } catch (error) { authMessage.innerText = error.message; }
+});
+document.getElementById('guest-request-message-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('guest-request-message-input');
+    if (!guestRequestSession || !input.value.trim()) return;
+    try {
+        const result = await eventRequestApi({ action: 'guest-message', accessKey: guestRequestSession.accessKey, text: input.value });
+        input.value = '';
+        renderGuestEventRequest(result);
+    } catch (error) { alert(error.message); }
+});
+document.getElementById('guest-request-logout-btn')?.addEventListener('click', () => {
+    guestRequestSession = null;
+    sessionStorage.removeItem('event-request-access-key');
+    guestRequestSection.classList.add('hidden');
+    authSection.classList.remove('hidden');
+});
+
+async function loadAdminEventRequests() {
+    if (currentUserData?.role !== 'admin') return;
+    const list = document.getElementById('admin-event-request-list');
+    list.innerHTML = '<em>Anfragen werden geladen …</em>';
+    try {
+        const result = await eventRequestApi({ action: 'admin-list' }, true);
+        adminEventRequests = result.requests || [];
+        list.innerHTML = adminEventRequests.length ? '' : '<em>Keine Event-Anfragen vorhanden.</em>';
+        adminEventRequests.forEach(request => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `request-list-item ${activeAdminEventRequest === request.id ? 'active' : ''}`;
+            button.innerHTML = `<strong>${escapeHtml(request.name)}</strong><br><span style="font-size:.8rem; color:var(--text-muted);">${escapeHtml(request.eventDate)} · ${escapeHtml(request.status)}</span>`;
+            button.onclick = () => openAdminEventRequest(request.id);
+            list.appendChild(button);
+        });
+    } catch (error) { list.innerText = error.message; }
+}
+
+async function openAdminEventRequest(requestId) {
+    try {
+        activeAdminEventRequest = requestId;
+        const result = await eventRequestApi({ action: 'admin-detail', requestId }, true);
+        const request = result.request;
+        const detail = document.getElementById('admin-event-request-detail');
+        detail.innerHTML = `<h3 style="margin-top:0;">${escapeHtml(request.name)}</h3><p class="settings-hint">${escapeHtml(request.email)} · ${escapeHtml(request.eventDate)}</p><p>${escapeHtml(request.details)}</p><div class="settings-row"><select id="admin-request-status"><option value="neu">Neu</option><option value="in_pruefung">In Prüfung</option><option value="angenommen">Angenommen</option><option value="abgelehnt">Abgelehnt</option></select><button id="admin-request-save-btn" class="small-btn" type="button">Status speichern</button></div><textarea id="admin-request-note" rows="3" style="margin-top:8px;" placeholder="Rückmeldung für den Anfrager">${escapeHtml(request.adminNote || '')}</textarea><div id="admin-request-messages" class="guest-chat"></div><div class="settings-row"><input id="admin-request-message-input" type="text" placeholder="Nachricht an den Anfrager"><button id="admin-request-message-btn" class="small-btn" type="button">Senden</button></div>`;
+        document.getElementById('admin-request-status').value = request.status;
+        const messages = document.getElementById('admin-request-messages');
+        (result.messages || []).forEach(message => {
+            const item = document.createElement('div'); item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
+            item.innerHTML = `<strong>${message.sender === 'admin' ? 'Team' : 'Anfrager'}</strong><br>${escapeHtml(message.text)}`; messages.appendChild(item);
+        });
+        document.getElementById('admin-request-save-btn').onclick = async () => {
+            const updated = await eventRequestApi({ action: 'admin-update', requestId, status: document.getElementById('admin-request-status').value, adminNote: document.getElementById('admin-request-note').value }, true);
+            await openAdminEventRequest(requestId); await loadAdminEventRequests(); return updated;
+        };
+        document.getElementById('admin-request-message-btn').onclick = async () => {
+            const input = document.getElementById('admin-request-message-input');
+            if (!input.value.trim()) return;
+            await eventRequestApi({ action: 'admin-message', requestId, text: input.value }, true);
+            await openAdminEventRequest(requestId);
+        };
+        await loadAdminEventRequests();
+    } catch (error) { document.getElementById('admin-event-request-detail').innerText = error.message; }
+}
+
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        guestRequestSection.classList.add('hidden');
         currentUserData = await ensureUserDocument(user);
         authSection.classList.add('hidden');
         appSection.classList.remove('hidden');
@@ -521,6 +657,7 @@ onAuthStateChanged(auth, async (user) => {
         initApp();
         await handleRSVPFromURL();
     } else {
+        if (guestRequestSession) return;
         currentUserData = null;
         appInitialized = false;
         stopAllListeners();
@@ -545,6 +682,7 @@ function updateUIForCurrentUser() {
     if (profileAvatar) profileAvatar.innerHTML = getAvatarMarkup(currentUserData);
 
     const isAdmin = currentUserData.role === 'admin';
+    menuEventRequestsBtn?.classList.toggle('hidden', !isAdmin);
     if (roleBadge) {
         roleBadge.innerText = isAdmin ? 'Admin' : 'User';
         roleBadge.className = isAdmin ? 'badge-admin' : 'badge-user';
@@ -580,6 +718,19 @@ function renderNotificationSettings() {
         const checkbox = document.getElementById(id);
         if (checkbox) checkbox.checked = Boolean(preferences[key]);
     });
+    setEmailNotificationOptionsEnabled(preferences.emailEnabled);
+}
+
+function setEmailNotificationOptionsEnabled(enabled) {
+    const options = document.getElementById('email-notification-options');
+    if (options) {
+        options.classList.toggle('notification-options-disabled', !enabled);
+        options.setAttribute('aria-disabled', String(!enabled));
+    }
+    ['notify-blog', 'notify-chat', 'notify-invitations'].forEach(id => {
+        const checkbox = document.getElementById(id);
+        if (checkbox) checkbox.disabled = !enabled;
+    });
 }
 
 async function saveNotificationPreferences() {
@@ -608,8 +759,12 @@ async function dispatchNotifications(type, recipientUids, title, body, data = {}
     }
 }
 
-Object.values(notificationPreferenceFields).forEach(id => {
+['notify-blog', 'notify-chat', 'notify-invitations'].forEach(id => {
     document.getElementById(id)?.addEventListener('change', saveNotificationPreferences);
+});
+document.getElementById('notify-email-enabled')?.addEventListener('change', (event) => {
+    setEmailNotificationOptionsEnabled(event.target.checked);
+    saveNotificationPreferences();
 });
 
 document.getElementById('change-email-btn').addEventListener('click', async () => {

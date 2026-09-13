@@ -150,6 +150,17 @@
         .notification-settings-grid { display: grid; gap: 7px; }
         .notification-option { display: flex; align-items: center; gap: 9px; min-height: 30px; color: var(--text); font-size: 0.85rem; cursor: pointer; }
         .notification-option input[type="checkbox"] { flex-basis: 18px; }
+        .notification-options-disabled { opacity: 0.42; filter: grayscale(1); }
+        .notification-options-disabled .notification-option { cursor: not-allowed; }
+        .auth-divider { display: flex; align-items: center; gap: 10px; margin: 16px 0 12px; color: var(--text-muted); font-size: 0.74rem; }
+        .auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+        .auth-provider-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 8px; }
+        .guest-chat { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding: 12px 0; }
+        .guest-message { padding: 9px 11px; border-radius: 10px; background: var(--background); border: 1px solid var(--border); font-size: .88rem; }
+        .guest-message.admin { background: var(--primary-light); border-color: var(--primary); }
+        .request-list-item { width: 100%; padding: 12px; text-align: left; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); cursor: pointer; }
+        .request-list-item.active { border-color: var(--primary); background: var(--primary-light); }
+        .event-request-admin-grid { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(0, 1.3fr); gap: 16px; }
         button.btn-primary { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: var(--radius-sm); font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
         button.btn-primary:active { background: var(--primary-dark); }
         button.btn-secondary { background: var(--background); color: var(--text); border: 1px solid var(--border-strong); padding: 10px 14px; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500; cursor: pointer; }
@@ -257,6 +268,7 @@
             .chat-container { height: calc(100vh - 125px); border-radius: 0; border: none; }
             .chat-sidebar { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
             .chat-main { display: none; width: 100%; position: absolute; top: 0; left: 0; height: 100%; }
+            .event-request-admin-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -289,7 +301,13 @@
             </div>
 
             <button id="auth-submit-btn" class="btn-primary" style="margin-bottom: 10px;">Anmelden</button>
-            <button id="google-login-btn" class="btn-secondary" style="width: 100%; margin-bottom: 20px;">Mit Google anmelden</button>
+            <div class="auth-divider">oder anmelden mit</div>
+            <button id="google-login-btn" class="btn-secondary auth-provider-btn" type="button">Mit Google anmelden</button>
+            <button id="open-event-request-btn" class="btn-secondary auth-provider-btn" type="button">Event anfragen</button>
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <input id="event-access-key-input" type="text" placeholder="Anfrage-Schlüssel eingeben" aria-label="Anfrage-Schlüssel">
+                <button id="open-event-status-btn" class="small-btn" type="button">Status öffnen</button>
+            </div>
 
             <a href="https://hutte-dangstetten-2.jimdosite.com/" target="_blank" rel="noopener" style="display:flex; align-items:center; justify-content:center; gap:6px; color:var(--secondary); font-size:0.8rem; font-weight:700; text-decoration:none; margin: 2px 0 18px;">
                 Zur Landingpage von HüttenPortal
@@ -302,6 +320,29 @@
             </div>
             <div id="auth-message" style="color: var(--danger); font-size: 0.85rem; margin-top: 12px; text-align: center; font-weight: 500;"></div>
         </div>
+    </div>
+
+    <div id="guest-request-section" class="container auth-container hidden">
+        <div class="card glass-card" style="padding:28px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;"><h2 style="margin:0;">Deine Event-Anfrage</h2><button id="guest-request-logout-btn" class="small-btn btn-secondary" type="button">Zur Anmeldung</button></div>
+            <div id="guest-request-status" style="margin-top:18px;"></div>
+            <h3 style="margin-top:22px;">Nachrichten mit dem Team</h3>
+            <div id="guest-request-messages" class="guest-chat"></div>
+            <div class="settings-row"><input id="guest-request-message-input" type="text" placeholder="Nachricht schreiben"><button id="guest-request-message-btn" class="small-btn" type="button">Senden</button></div>
+        </div>
+    </div>
+
+    <div id="event-request-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="event-request-title">
+        <form id="event-request-form" class="modal-box">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;"><h3 id="event-request-title" style="margin:0;">Event anfragen</h3><button id="close-event-request-modal-btn" class="small-btn btn-secondary" type="button" aria-label="Schließen">×</button></div>
+            <p class="settings-hint">Kein Konto nötig. Nach dem Absenden erhältst du einen Schlüssel für Status und Nachrichten.</p>
+            <div class="form-group"><label>Name</label><input id="event-request-name" required maxlength="120"></div>
+            <div class="form-group"><label>E-Mail</label><input id="event-request-email" type="email" required maxlength="254"></div>
+            <div class="form-group"><label>Wunschdatum</label><input id="event-request-date" type="date" required></div>
+            <div class="form-group"><label>Beschreibung</label><textarea id="event-request-details" required maxlength="2000" rows="5" placeholder="Art der Veranstaltung, Personenanzahl und weitere Wünsche"></textarea></div>
+            <button class="btn-primary" type="submit">Anfrage absenden</button>
+            <div id="event-request-result" aria-live="polite" style="font-size:.85rem;"></div>
+        </form>
     </div>
 
     <!-- App Bereich -->
@@ -337,6 +378,10 @@
             <button class="menu-item" data-menu-tab="profile" type="button">
                 <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                 <span>Profil & Verwaltung</span>
+            </button>
+            <button id="menu-event-requests-btn" class="menu-item hidden" data-menu-tab="event-requests" type="button">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4M3 10h18M5 5h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/><path d="M8 15h8M8 18h5"/></svg>
+                <span>Event-Anfragen</span>
             </button>
             <div class="menu-divider"></div>
             <div class="menu-section-label">Extern</div>
@@ -487,8 +532,8 @@
 
                     <div class="chat-input-area">
                         <input type="file" id="chat-image-file-input" accept="image/*" hidden>
-                        <button id="chat-image-btn" class="chat-tool-btn" type="button" title="Bild hochladen" aria-label="Bild hochladen">🖼️</button>
-                        <button id="chat-speech-btn" class="chat-tool-btn" type="button" title="Spracheingabe" aria-label="Spracheingabe">🎙️</button>
+                        <button id="chat-image-btn" class="chat-tool-btn" type="button" title="Bild hochladen" aria-label="Bild hochladen"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button>
+                        <button id="chat-speech-btn" class="chat-tool-btn" type="button" title="Spracheingabe" aria-label="Spracheingabe"><svg class="icon" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 21v-4M8 21h8"/></svg></button>
                         <input type="text" id="chat-input" placeholder="Nachricht schreiben..." style="border-radius: 20px;">
                         <button id="chat-send-btn" class="btn-primary" style="width: auto; border-radius: 20px; padding: 10px 18px;">
                             <svg class="icon icon-sm" style="stroke: white;" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -560,6 +605,10 @@
         </div>
 
         <!-- Tab 4: Profil & Admin -->
+        <div id="tab-event-requests-content" class="container hidden">
+            <div class="card"><h2>Event-Anfragen</h2><p class="settings-hint">Anfragen von Gästen verwalten und direkt antworten.</p><div class="event-request-admin-grid"><div id="admin-event-request-list" style="display:grid; gap:8px;"></div><div id="admin-event-request-detail"><em>Wähle eine Anfrage aus.</em></div></div></div>
+        </div>
+
         <div id="tab-profile-content" class="container hidden">
             <div class="card">
                 <h3>Dein Profil</h3>
@@ -585,6 +634,8 @@
                     <p class="settings-hint">Lege fest, welche Informationen du per E-Mail erhalten möchtest.</p>
                     <div class="notification-settings-grid">
                         <label class="notification-option"><input type="checkbox" id="notify-email-enabled"><span>E-Mail-Benachrichtigungen</span></label>
+                    </div>
+                    <div id="email-notification-options" class="notification-settings-grid" style="margin-top:8px;">
                         <label class="notification-option"><input type="checkbox" id="notify-blog"><span>Neue und geänderte Blogbeiträge</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-chat"><span>Neue Chatnachrichten</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-invitations"><span>Neue und geänderte Einladungen</span></label>
@@ -693,6 +744,6 @@
 
 
     <!-- Haupt-Skript -->
-    <script type="module" src="app.js?v=20260913-chat-media"></script>
+    <script type="module" src="app.js?v=20260913-event-requests"></script>
 </body>
 </html>

@@ -1,10 +1,10 @@
-# 🏡 Hütten-Manager (Firebase Chat & Event Platform)
+# Hütten-Manager (Firebase Chat & Event Platform)
 
 A full-featured, mobile-first web application designed for group coordination, real-time communication, and invitation management. Built with **vanilla JavaScript**, **Firebase** (Authentication, Cloud Firestore), **Leaflet maps**, and **EmailJS**.
 
 ---
 
-## 📖 User Guidelines & Support
+## User Guidelines & Support
 
 * **General Support:** If you have any questions or need help navigating the platform, please reach out to one of the **Admins**.
 * **Account Deletion & Password Resets:** To delete your account or request a password reset, contact the **IT-Admin**.
@@ -12,32 +12,33 @@ A full-featured, mobile-first web application designed for group coordination, r
 
 ---
 
-## 🌟 Features
+## Features
 
-### 💬 Real-Time Chat System
+### Real-Time Chat System
 * **Global Chat (`global`):** Public chat room accessible to all authenticated users.
 * **Tag-Based Group Channels (`#channel`):** Exclusive channels dynamically created by admins (e.g., `#Orga`, `#Küche`). Access is automatically restricted based on user tags.
 * **Direct Messages (DMs):** Private 1-on-1 messaging between registered users.
 * **Chat Media & Dictation:** Images can be uploaded through the authenticated image API; speech input uses the browser's speech-recognition feature where available.
 * **Group Settings Panel:** In-chat admin panel for quick tag management, participant lookup, and channel deletion.
 
-### ✉️ Event Invitations & RSVP
+### Event Invitations & RSVP
 * **Personalized Email Invitations:** Send customizable HTML email invitations powered by EmailJS using template placeholders like `{{name}}`.
 * **Interactive Maps:** Integrated Leaflet / OpenStreetMap controls to set precise location pins or select from pre-saved locations.
 * **URL & In-App RSVP:** Invited users can confirm (`Yes`) or decline (`No`) directly from email links or within the dashboard.
 * **Live Guest List:** Real-time visibility into current responses and guest attendance counts.
+* **Public Event Requests:** Visitors can submit an event request without an account. They receive a private key that grants access only to that request's status and its conversation with administrators.
 
-### 🛡️ Role-Based Access Control (RBAC) & User Management
+### Role-Based Access Control (RBAC) & User Management
 * **User Roles:** Distinct privileges for standard `user` and `admin` roles.
 * **Custom Tagging System:** Admins can create custom tags and assign them to users to grant channel access.
 * **User Administration:** Admin tools to upgrade/downgrade roles, update tags, or permanently remove accounts.
 
-### 📝 Blog & Profile Images
+### Blog & Profile Images
 * **Admin Blog Editor:** Markdown formatting, live preview, embedded images, and blog editing for admins.
 * **External Image Uploads:** Blog, profile, and chat images are uploaded through the Cloudflare Worker; the ImgBB key is never exposed to the browser.
 * **Chat Avatars:** Profile images appear in direct-chat lists and beside chat messages, with initials as fallback.
 
-### 🧭 App Experience
+### App Experience
 * **Expressive App Shell:** Theme-aware app bar and drawer menu with a link to the HüttenPortal landing page.
 * **Dark Mode:** Toggleable dark theme with system preference fallback and local persistence.
 * **Performance:** Static lightweight backgrounds, reduced blur cost, deferred third-party scripts, and guarded Firebase listener initialization.
@@ -45,7 +46,7 @@ A full-featured, mobile-first web application designed for group coordination, r
 
 ---
 
-## 📱 Tech Stack
+## Tech Stack
 
 | Domain | Technology |
 | :--- | :--- |
@@ -57,7 +58,7 @@ A full-featured, mobile-first web application designed for group coordination, r
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 ├── index.html        # Main HTML structure, modal views, and CSS variables/styles
@@ -69,10 +70,10 @@ A full-featured, mobile-first web application designed for group coordination, r
 
 ---
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 ### 1. Prerequisites
-* A [Firebase Project](https://console.firebase.google.com/) with **Authentication** (Email/Password & Google Sign-In) and **Cloud Firestore** enabled.
+* A [Firebase Project](https://console.firebase.google.com/) with **Authentication** (Email/Password and the desired Google, Apple, and/or Microsoft sign-in providers) and **Cloud Firestore** enabled.
 * An active [EmailJS Account](https://www.emailjs.com/) for dispatching invitations.
 
 ### 2. Firebase Configuration
@@ -101,6 +102,8 @@ npx wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
 
 Als Wert wird der komplette JSON-Inhalt eines Firebase-Service-Accounts eingegeben. Das JSON niemals committen oder in `wrangler.toml` eintragen. Der Worker verwendet zusätzlich die Variablen `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID` und `EMAILJS_PUBLIC_KEY` aus `wrangler.toml`.
 
+Der Worker stellt außerdem `/event-request` bereit. Er speichert Event-Anfragen und die zugehörigen Gastnachrichten serverseitig mit dem vorhandenen Service-Account; hierfür sind keine öffentlichen Firestore-Regeln erforderlich. Nach Änderungen im Ordner `image-worker` neu deployen, z. B. mit `npx wrangler@3 deploy`.
+
 ### 4. Initializing the First Admin User
 By default, newly registered users receive the `user` role. To elevate an account to **Admin**:
 
@@ -116,7 +119,7 @@ By default, newly registered users receive the `user` role. To elevate an accoun
 
 ---
 
-## 🔒 Cloud Firestore Security Rules
+## Cloud Firestore Security Rules
 
 Apply these rules in your **Firebase Console** under **Firestore Database > Rules**:
 
@@ -204,7 +207,7 @@ service cloud.firestore {
 
 ---
 
-## 📄 License
+## License
 
 This project is licensed under the **MIT License**.
 
