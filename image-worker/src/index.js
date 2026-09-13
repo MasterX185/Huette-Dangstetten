@@ -78,7 +78,7 @@ async function getGoogleAccessToken(env) {
     if (!env.FIREBASE_SERVICE_ACCOUNT_JSON) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON fehlt");
     const serviceAccount = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
     const privateKey = await importPKCS8(serviceAccount.private_key, "RS256");
-    const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging" })
+    const assertion = await new SignJWT({ scope: "https://www.googleapis.com/auth/datastore" })
         .setProtectedHeader({ alg: "RS256", typ: "JWT" })
         .setIssuer(serviceAccount.client_email)
         .setAudience("https://oauth2.googleapis.com/token")
@@ -102,23 +102,9 @@ async function getUserDocument(uid, accessToken, env) {
     return firestoreDocument(await response.json());
 }
 
-function notificationPreference(user, type, channel) {
+function notificationPreference(user, type) {
     const preferences = user.notificationPreferences || {};
-    return preferences[type] !== false && preferences[`${channel}Enabled`] !== false;
-}
-
-async function sendPush(user, title, body, data, accessToken, env) {
-    const tokens = Array.isArray(user.fcmTokens) ? user.fcmTokens : [];
-    if (!tokens.length) return false;
-    const url = `https://fcm.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/messages:send`;
-    for (const token of tokens) {
-        await fetch(url, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ message: { token, notification: { title, body }, data: Object.fromEntries(Object.entries(data || {}).map(([key, value]) => [key, String(value)])) } })
-        });
-    }
-    return true;
+    return preferences[type] !== false && preferences.emailEnabled !== false;
 }
 
 async function sendEmail(user, title, body, env) {
@@ -160,15 +146,14 @@ async function sendNotifications(request, env, user) {
     const { token: accessToken } = await getGoogleAccessToken(env);
     const title = String(payload.title || "HüttenPortal").slice(0, 120);
     const body = String(payload.body || "Es gibt neue Aktivitäten.").slice(0, 500);
-    const result = { push: 0, email: 0 };
+    const result = { email: 0 };
     const recipientUids = payload.type === "test"
         ? [user.payload.sub]
         : [...new Set(payload.recipientUids)].filter(uid => uid !== user.payload.sub);
     for (const uid of recipientUids) {
         const recipient = await getUserDocument(uid, accessToken, env);
         if (!recipient) continue;
-        if (notificationPreference(recipient, payload.type, "push") && await sendPush(recipient, title, body, payload.data, accessToken, env)) result.push++;
-        if (notificationPreference(recipient, payload.type, "email") && await sendEmail(recipient, title, body, env)) result.email++;
+        if (notificationPreference(recipient, payload.type) && await sendEmail(recipient, title, body, env)) result.email++;
     }
     return result;
 }

@@ -7,23 +7,20 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
-    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs, arrayUnion
+    query, orderBy, serverTimestamp, deleteDoc, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-import { getMessaging, getToken, onMessage, isSupported } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCLhOlcwKeqtdNNF_HrFA0xavgOgZjHMPw",
     authDomain: "huette-dangstetten-3a737.firebaseapp.com",
     projectId: "huette-dangstetten-3a737",
     storageBucket: "huette-dangstetten-3a737.firebasestorage.app",
-    messagingSenderId: "700971650309",
     appId: "1:700971650309:web:0793b2667578bc8eea7b6c"
 };
 
 // Nach dem Deploy auf die URL deines Workers setzen.
 const IMAGE_UPLOAD_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/upload";
 const NOTIFICATION_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/notify";
-const FCM_VAPID_KEY = "BHjSdPkGysO0AcZT_zgMdUERRCazci0Eob6vC7geQHe_RhkAUCy7zsdwSi36h7VpzxuV8qbd6DO-fUw4EI-majw";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -42,10 +39,8 @@ let activeChatUnsubscribe = null;
 let activeUnsubscribes = [];
 let invitationsCache = {};
 let appInitialized = false;
-let messaging = null;
 
 const DEFAULT_NOTIFICATION_PREFERENCES = {
-    pushEnabled: false,
     emailEnabled: true,
     blog: true,
     chat: true,
@@ -573,7 +568,6 @@ function updateUIForCurrentUser() {
 }
 
 const notificationPreferenceFields = {
-    pushEnabled: 'notify-push-enabled',
     emailEnabled: 'notify-email-enabled',
     blog: 'notify-blog',
     chat: 'notify-chat',
@@ -586,8 +580,6 @@ function renderNotificationSettings() {
         const checkbox = document.getElementById(id);
         if (checkbox) checkbox.checked = Boolean(preferences[key]);
     });
-    const status = document.getElementById('notification-status');
-    if (status && !FCM_VAPID_KEY) status.innerText = 'Push benötigt noch einen Firebase Web-Push-Schlüssel.';
 }
 
 async function saveNotificationPreferences() {
@@ -600,54 +592,6 @@ async function saveNotificationPreferences() {
     currentUserData.notificationPreferences = notificationPreferences;
     const status = document.getElementById('notification-status');
     if (status) status.innerText = 'Einstellungen gespeichert.';
-}
-
-async function enablePushNotifications() {
-    const status = document.getElementById('notification-status');
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        if (status) status.innerText = 'Push wird von diesem Browser nicht unterstützt.';
-        return;
-    }
-    if (!FCM_VAPID_KEY) {
-        if (status) status.innerText = 'Bitte zuerst FCM_VAPID_KEY in app.js eintragen.';
-        return;
-    }
-
-    try {
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') throw new Error('Berechtigung abgelehnt');
-        let registration;
-        try {
-            registration = await navigator.serviceWorker.register('./sw.js?v=20260911-notifications4', { updateViaCache: 'none' });
-            try {
-                await registration.update();
-            } catch (updateError) {
-                console.warn('Service-Worker-Update übersprungen:', updateError);
-            }
-        } catch (registrationError) {
-            registration = await navigator.serviceWorker.getRegistration('./');
-            if (!registration) throw new Error(`Service Worker konnte nicht registriert werden: ${registrationError.message}`);
-        }
-        if (!registration.active) {
-            registration = await navigator.serviceWorker.ready;
-        }
-        const supported = await isSupported();
-        if (!supported) throw new Error('Firebase Messaging wird von diesem Browser nicht unterstützt');
-        messaging = messaging || getMessaging(app);
-        const token = await getToken(messaging, { vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
-        if (!token) throw new Error('Kein Push-Token erhalten');
-        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-            fcmTokens: arrayUnion(token),
-            'notificationPreferences.pushEnabled': true
-        });
-        currentUserData.notificationPreferences = { ...currentUserData.notificationPreferences, pushEnabled: true };
-        document.getElementById('notify-push-enabled').checked = true;
-        if (status) status.innerText = 'Push-Benachrichtigungen sind auf diesem Gerät aktiv.';
-    } catch (error) {
-        console.error('FCM-Aktivierung fehlgeschlagen:', error);
-        const detail = error.code || error.name || 'Fehler';
-        if (status) status.innerText = `Push fehlgeschlagen (${detail}): ${error.message}. Bitte HTTPS, Chrome-Berechtigung und Netzwerk prüfen.`;
-    }
 }
 
 async function dispatchNotifications(type, recipientUids, title, body, data = {}) {
@@ -667,7 +611,6 @@ async function dispatchNotifications(type, recipientUids, title, body, data = {}
 Object.values(notificationPreferenceFields).forEach(id => {
     document.getElementById(id)?.addEventListener('change', saveNotificationPreferences);
 });
-document.getElementById('enable-push-btn')?.addEventListener('click', enablePushNotifications);
 
 document.getElementById('change-email-btn').addEventListener('click', async () => {
     const newEmail = document.getElementById('new-email-input').value.trim();
@@ -720,33 +663,6 @@ function initApp() {
     loadLocations();
     loadInvitations();
     loadBlogs();
-    initForegroundNotifications();
-}
-
-async function initForegroundNotifications() {
-    if (!FCM_VAPID_KEY || !('serviceWorker' in navigator)) return;
-    try {
-        const registration = await navigator.serviceWorker.register('./sw.js?v=20260911-notifications4', { updateViaCache: 'none' });
-        try {
-            await registration.update();
-        } catch (updateError) {
-            console.warn('Service-Worker-Update übersprungen:', updateError);
-        }
-        if (!(await isSupported())) return;
-        messaging = messaging || getMessaging(app);
-        onMessage(messaging, (payload) => {
-            if (Notification.permission !== 'granted') return;
-            const title = payload.notification?.title || 'HüttenPortal';
-            const options = {
-                body: payload.notification?.body || 'Es gibt neue Aktivitäten.',
-                icon: './icon.png',
-                data: payload.data || {}
-            };
-            new Notification(title, options);
-        });
-    } catch (error) {
-        console.warn('Foreground-Push konnte nicht initialisiert werden:', error);
-    }
 }
 
 function initMap() {
@@ -1567,9 +1483,11 @@ window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
             const msgDiv = document.createElement('div');
             msgDiv.className = `message-bubble ${isMe ? 'my-message' : 'other-message'}`;
             const timeStr = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+            const imageUrl = /^https:\/\//i.test(msg.imageUrl || '') ? msg.imageUrl : '';
             msgDiv.innerHTML = `
             ${!isMe ? `<div class="msg-sender">${escapeHtml(msg.senderName || msg.senderEmail)}</div>` : ''}
-            <div>${escapeHtml(msg.text || '')}</div>
+            ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+            ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img class="chat-image" src="${escapeHtml(imageUrl)}" alt="Geteiltes Bild" loading="lazy"></a>` : ''}
             <div class="msg-time">${timeStr}</div>
             `;
             const avatar = document.createElement('div');
@@ -1618,13 +1536,73 @@ function setupTagSettingsPanel(tagName) {
 document.getElementById('chat-send-btn').addEventListener('click', sendChatMessage);
 document.getElementById('chat-input').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
 
-async function sendChatMessage() {
+function setChatInputStatus(message = '') {
+    const status = document.getElementById('chat-input-status');
+    if (status) status.innerText = message;
+}
+
+document.getElementById('chat-image-btn')?.addEventListener('click', () => {
+    document.getElementById('chat-image-file-input')?.click();
+});
+
+document.getElementById('chat-image-file-input')?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !auth.currentUser) return;
+    const uploadButton = document.getElementById('chat-image-btn');
+    uploadButton.disabled = true;
+    setChatInputStatus('Bild wird hochgeladen …');
+    try {
+        const result = await uploadImageToWorker(file, 'chat');
+        await sendChatMessage({ imageUrl: result.url });
+        setChatInputStatus('Bild gesendet.');
+    } catch (error) {
+        console.error('Chat-Bildupload fehlgeschlagen:', error);
+        setChatInputStatus(`Bild konnte nicht hochgeladen werden: ${error.message}`);
+    } finally {
+        event.target.value = '';
+        uploadButton.disabled = false;
+    }
+});
+
+document.getElementById('chat-speech-btn')?.addEventListener('click', () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        setChatInputStatus('Spracheingabe wird von diesem Browser nicht unterstützt.');
+        return;
+    }
+    const button = document.getElementById('chat-speech-btn');
+    const input = document.getElementById('chat-input');
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'de-DE';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    let transcript = '';
+    recognition.onstart = () => {
+        button.classList.add('recording');
+        setChatInputStatus('Ich höre zu …');
+    };
+    recognition.onresult = (event) => {
+        transcript = Array.from(event.results).map(result => result[0].transcript).join(' ');
+        input.value = transcript.trim();
+    };
+    recognition.onerror = (event) => {
+        setChatInputStatus(event.error === 'not-allowed' ? 'Mikrofonzugriff wurde nicht erlaubt.' : 'Spracheingabe fehlgeschlagen.');
+    };
+    recognition.onend = () => {
+        button.classList.remove('recording');
+        if (transcript) setChatInputStatus('Text übernommen – du kannst ihn vor dem Senden bearbeiten.');
+    };
+    recognition.start();
+});
+
+async function sendChatMessage({ imageUrl = '' } = {}) {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text || !auth.currentUser) return;
+    if ((!text && !imageUrl) || !auth.currentUser) return;
     input.value = '';
     await addDoc(collection(db, `chats/${currentChatRoom}/messages`), {
         text,
+        imageUrl,
         senderEmail: auth.currentUser.email,
         senderName: currentUserData ? currentUserData.name : auth.currentUser.email,
         createdAt: serverTimestamp()
@@ -1637,7 +1615,8 @@ async function sendChatMessage() {
             (currentChatRoom.startsWith('dm_') && currentChatRoom.includes(user.email))
         ))
         .map(user => user.id);
-    await dispatchNotifications('chat', recipientUids, 'Neue Chatnachricht', `${currentUserData?.name || auth.currentUser.email}: ${text}`, { roomId: currentChatRoom });
+    const preview = text || 'hat ein Bild geteilt.';
+    await dispatchNotifications('chat', recipientUids, 'Neue Chatnachricht', `${currentUserData?.name || auth.currentUser.email}: ${preview}`, { roomId: currentChatRoom });
 }
 
 function renderAdminUsers() {

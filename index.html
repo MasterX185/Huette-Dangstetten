@@ -203,6 +203,7 @@
 
         .chat-messages { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
         .message-bubble { max-width: 80%; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.95rem; position: relative; line-height: 1.4; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+        .chat-image { display: block; width: min(280px, 100%); max-height: 360px; margin-top: 8px; object-fit: cover; border-radius: 10px; background: var(--background); }
         .message-row { display: flex; align-items: flex-end; gap: 8px; }
         .message-row.mine { justify-content: flex-end; }
         .message-avatar { width: 30px; height: 30px; flex: 0 0 30px; border-radius: 11px; overflow: hidden; display: grid; place-items: center; background: var(--primary-light); color: var(--primary-dark); font-size: 0.72rem; font-weight: 800; }
@@ -213,6 +214,15 @@
         .msg-time { font-size: 0.65rem; opacity: 0.7; text-align: right; margin-top: 4px; }
 
         .chat-input-area { padding: 12px; background: var(--surface); border-top: 1px solid var(--border-strong); display: flex; gap: 8px; align-items: center; }
+        .chat-input-area input { min-width: 0; }
+        .chat-tool-btn { flex: 0 0 40px; width: 40px; height: 40px; padding: 0; display: inline-grid; place-items: center; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--surface); color: var(--text-muted); cursor: pointer; }
+        .chat-tool-btn:hover, .chat-tool-btn.recording { color: white; border-color: var(--primary); background: var(--primary); }
+        .chat-input-status { padding: 0 14px 8px; min-height: 20px; background: var(--surface); color: var(--text-muted); font-size: 0.75rem; }
+        .settings-section { padding: 18px 0; border-top: 1px solid var(--border-strong); }
+        .settings-section:first-of-type { padding-top: 4px; border-top: 0; }
+        .settings-title { margin: 0 0 4px; font-size: 0.95rem; }
+        .settings-hint { margin: 0 0 12px; color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
+        .settings-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
         .blog-editor { border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; background: var(--surface); }
         .blog-toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border-strong); background: var(--background); }
@@ -476,11 +486,15 @@
                     <div id="chat-messages" class="chat-messages"></div>
 
                     <div class="chat-input-area">
+                        <input type="file" id="chat-image-file-input" accept="image/*" hidden>
+                        <button id="chat-image-btn" class="chat-tool-btn" type="button" title="Bild hochladen" aria-label="Bild hochladen">🖼️</button>
+                        <button id="chat-speech-btn" class="chat-tool-btn" type="button" title="Spracheingabe" aria-label="Spracheingabe">🎙️</button>
                         <input type="text" id="chat-input" placeholder="Nachricht schreiben..." style="border-radius: 20px;">
                         <button id="chat-send-btn" class="btn-primary" style="width: auto; border-radius: 20px; padding: 10px 18px;">
                             <svg class="icon icon-sm" style="stroke: white;" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                         </button>
                     </div>
+                    <div id="chat-input-status" class="chat-input-status" aria-live="polite"></div>
                 </div>
             </div>
         </div>
@@ -549,39 +563,39 @@
         <div id="tab-profile-content" class="container hidden">
             <div class="card">
                 <h3>Dein Profil</h3>
-                <div style="display:flex; align-items:center; gap:12px; margin-top:14px;">
+                <div class="settings-section" style="margin-top:14px;">
+                    <h4 class="settings-title">Profilbild</h4>
+                    <p class="settings-hint">Wird in Direkt-Chats und neben deinen Nachrichten angezeigt.</p>
+                <div style="display:flex; align-items:center; gap:12px;">
                     <div id="user-profile-avatar" class="room-avatar" style="width:56px; height:56px; font-size:1.1rem; background:var(--primary-light); color:var(--primary-dark);">U</div>
                     <div>
                         <strong id="profile-name-display">Profilbild</strong>
-                        <div style="font-size:0.78rem; color:var(--text-muted);">Wird auch in Direkt-Chats angezeigt.</div>
+                        <div style="font-size:0.78rem; color:var(--text-muted);">Dein Bild im Chat</div>
                     </div>
                 </div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                <div class="settings-row" style="margin-top:12px;">
                     <input type="file" id="profile-image-file-input" accept="image/*" style="flex:1; min-width:190px;">
                     <button id="upload-profile-image-btn" class="small-btn" type="button">Profilbild hochladen</button>
-                </div>
+                </div></div>
                 <p style="margin-top: 10px; font-size: 0.9rem; color: var(--text-muted);">Angemeldet als: <strong id="header-user-badge" style="color: var(--text);"></strong></p>
-                <div style="margin-top: 10px; font-size: 0.9rem;">Zugewiesene Gruppen: <div id="user-profile-tags" style="margin-top: 6px;"></div></div>
+                <div class="settings-section" style="font-size: 0.9rem;"><h4 class="settings-title">Deine Gruppen</h4><div id="user-profile-tags" style="margin-top: 6px;"></div></div>
 
-                <div class="notification-settings" style="margin-top: 20px; border-top: 1px solid var(--border-strong); padding-top: 16px;">
-                    <h4 style="font-size: 0.95rem; margin-bottom: 6px;">Benachrichtigungen</h4>
-                    <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 10px;">Wähle, worüber du bei neuen oder geänderten Inhalten informiert werden möchtest.</p>
+                <div class="settings-section notification-settings">
+                    <h4 class="settings-title">E-Mail-Benachrichtigungen</h4>
+                    <p class="settings-hint">Lege fest, welche Informationen du per E-Mail erhalten möchtest.</p>
                     <div class="notification-settings-grid">
-                        <label class="notification-option"><input type="checkbox" id="notify-push-enabled"><span>Push-Benachrichtigungen</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-email-enabled"><span>E-Mail-Benachrichtigungen</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-blog"><span>Neue und geänderte Blogbeiträge</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-chat"><span>Neue Chatnachrichten</span></label>
                         <label class="notification-option"><input type="checkbox" id="notify-invitations"><span>Neue und geänderte Einladungen</span></label>
                     </div>
-                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px;">
-                        <button id="enable-push-btn" class="small-btn" type="button">Push auf diesem Gerät aktivieren</button>
-                        <span id="notification-status" style="font-size:0.78rem; color:var(--text-muted);"></span>
-                    </div>
+                    <span id="notification-status" style="display:block; margin-top:10px; font-size:0.78rem; color:var(--text-muted);"></span>
                 </div>
 
-                <div style="margin-top: 20px; border-top: 1px solid var(--border-strong); padding-top: 16px;">
-                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">E-MAIL ÄNDERN</label>
-                    <div style="display: flex; gap: 8px;">
+                <div class="settings-section">
+                    <h4 class="settings-title">E-Mail-Adresse</h4>
+                    <p class="settings-hint">Ändere die Adresse, mit der du dich anmeldest.</p>
+                    <div class="settings-row">
                         <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
                         <button id="change-email-btn" class="small-btn" style="flex-shrink: 0;">Speichern</button>
                     </div>
@@ -679,6 +693,6 @@
 
 
     <!-- Haupt-Skript -->
-    <script type="module" src="app.js?v=20260911-notifications5"></script>
+    <script type="module" src="app.js?v=20260913-chat-media"></script>
 </body>
 </html>
