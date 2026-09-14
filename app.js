@@ -575,11 +575,18 @@ googleLoginBtn.addEventListener('click', () => {
 
 async function eventRequestApi(payload, requiresAuth = false) {
     const headers = { 'Content-Type': 'application/json' };
-    if (requiresAuth) headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
-    const response = await fetch(EVENT_REQUEST_WORKER_URL, { method: 'POST', headers, body: JSON.stringify(payload) });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result?.error || 'Anfrage konnte nicht verarbeitet werden.');
-    return result;
+    if (requiresAuth && auth.currentUser) headers.Authorization = `Bearer ${await auth.currentUser.getIdToken()}`;
+    try {
+        const response = await fetch(EVENT_REQUEST_WORKER_URL, { method: 'POST', headers, body: JSON.stringify(payload) });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.error || 'Anfrage konnte nicht verarbeitet werden.');
+        return result;
+    } catch (err) {
+        if (err.name === 'TypeError' || err.message === 'Failed to fetch') {
+            throw new Error('Verbindung zum Server fehlgeschlagen. Bitte versuche es erneut.');
+        }
+        throw err;
+    }
 }
 
 const eventRequestModal = document.getElementById('event-request-modal');

@@ -3,30 +3,33 @@ import { createRemoteJWKSet, importPKCS8, jwtVerify, SignJWT } from "jose";
 const FIREBASE_ISSUER = (projectId) => `https://securetoken.google.com/${projectId}`;
 const FIREBASE_KEYS = createRemoteJWKSet(new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"));
 
-function corsHeaders(request, env) {
+function isOriginAllowed(request, env) {
     const origin = request.headers.get("Origin");
+    if (!origin || origin === "null") return true;
     const allowedOrigins = (env.ALLOWED_ORIGIN || "")
         .split(",")
         .map(value => value.trim())
         .filter(Boolean);
-    const allowed = origin && allowedOrigins.includes(origin) ? origin : allowedOrigins[0] || "null";
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        const url = new URL(origin);
+        if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname.endsWith(".github.io")) {
+            return true;
+        }
+    } catch {}
+    return false;
+}
+
+function corsHeaders(request, env) {
+    const origin = request.headers.get("Origin");
+    const allowed = (origin && isOriginAllowed(request, env)) ? origin : (origin || "*");
     return {
         "Access-Control-Allow-Origin": allowed,
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Methods": "POST, OPTIONS, GET",
         "Access-Control-Allow-Headers": "Authorization, Content-Type",
         "Access-Control-Max-Age": "86400",
         "Vary": "Origin"
     };
-}
-
-function isOriginAllowed(request, env) {
-    const origin = request.headers.get("Origin");
-    if (!origin) return true;
-    return (env.ALLOWED_ORIGIN || "")
-        .split(",")
-        .map(value => value.trim())
-        .filter(Boolean)
-        .includes(origin);
 }
 
 function json(data, status, request, env) {
@@ -107,8 +110,9 @@ function notificationPreference(user, type) {
     return preferences[type] !== false && preferences.emailEnabled !== false;
 }
 
-async function sendEmail(user, title, body, env) {
+async function sendEmail(user, title, body, env, extraParams = {}) {
     if (!env.EMAILJS_SERVICE_ID || !env.EMAILJS_TEMPLATE_ID || !env.EMAILJS_PUBLIC_KEY || !user.email) return false;
+    const recipientName = user.name || user.email?.split('@')[0] || "Nutzer";
     const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,10 +122,16 @@ async function sendEmail(user, title, body, env) {
             user_id: env.EMAILJS_PUBLIC_KEY,
             template_params: {
                 to_email: user.email,
+                to_name: recipientName,
+                name: recipientName,
                 subject: title,
                 message: body,
+                datetime: extraParams.datetime || "",
+                mapsUrl: extraParams.mapsUrl || "",
+                sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
                 from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-                reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email
+                reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
+                ...extraParams
             }
         })
     });
@@ -144,16 +154,29 @@ async function sendNotifications(request, env, user) {
     }
 
     const { token: accessToken } = await getGoogleAccessToken(env);
+    const senderUser = await getUserDocument(user.payload.sub, accessToken, env);
+    const senderName = senderUser?.name || senderUser?.email || "Dein Hütten-Team";
+
     const title = String(payload.title || "HüttenPortal").slice(0, 120);
     const body = String(payload.body || "Es gibt neue Aktivitäten.").slice(0, 500);
     const result = { email: 0 };
     const recipientUids = payload.type === "test"
         ? [user.payload.sub]
+        : payload.type === "invitations"
+        ? [...new Set(payload.recipientUids)]
         : [...new Set(payload.recipientUids)].filter(uid => uid !== user.payload.sub);
+
+    const extraParams = {
+        datetime: payload.data?.datetime || "",
+        mapsUrl: payload.data?.mapsUrl || "",
+        sender: senderName,
+        ...(payload.data || {})
+    };
+
     for (const uid of recipientUids) {
         const recipient = await getUserDocument(uid, accessToken, env);
         if (!recipient) continue;
-        if (notificationPreference(recipient, payload.type) && await sendEmail(recipient, title, body, env)) result.email++;
+        if (notificationPreference(recipient, payload.type) && await sendEmail(recipient, title, body, env, extraParams)) result.email++;
     }
     return result;
 }
@@ -342,9 +365,6 @@ async function handleEventRequest(request, env) {
 export default {
     async fetch(request, env) {
         if (request.method === "OPTIONS") {
-            if (!isOriginAllowed(request, env)) {
-                return new Response("Origin not allowed", { status: 403 });
-            }
             return new Response(null, { status: 204, headers: corsHeaders(request, env) });
         }
 
