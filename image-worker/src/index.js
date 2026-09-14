@@ -10,10 +10,20 @@ function isOriginAllowed(request, env) {
         .split(",")
         .map(value => value.trim())
         .filter(Boolean);
-    if (allowedOrigins.includes(origin)) return true;
+    if (allowedOrigins.includes("*") || allowedOrigins.includes(origin)) return true;
     try {
         const url = new URL(origin);
-        if (url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname.endsWith(".github.io")) {
+        const host = url.hostname;
+        if (
+            host === "localhost" ||
+            host === "127.0.0.1" ||
+            host === "raspberrypi" ||
+            host.endsWith(".local") ||
+            host.endsWith(".github.io") ||
+            /^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) ||
+            /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) ||
+            /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(host)
+        ) {
             return true;
         }
     } catch {}

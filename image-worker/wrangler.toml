@@ -4,7 +4,7 @@ compatibility_date = "2026-09-11"
 
 [vars]
 FIREBASE_PROJECT_ID = "huette-dangstetten-3a737"
-ALLOWED_ORIGIN = "https://masterx185.github.io,http://localhost:63342,http://localhost:8000,http://localhost:4173,http://127.0.0.1:4173"
+ALLOWED_ORIGIN = "https://masterx185.github.io,http://localhost:63342,http://localhost:8000,http://localhost:4173,http://127.0.0.1:4173,*"
 EMAILJS_SERVICE_ID = "service_oxlrwkl"
 EMAILJS_TEMPLATE_ID = "template_rl8z3ur"
 EMAILJS_PUBLIC_KEY = "CFQLo5C6SDyav2WuP"
