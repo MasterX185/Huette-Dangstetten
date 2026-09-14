@@ -121,30 +121,44 @@ function notificationPreference(user, type) {
 }
 
 async function sendEmail(user, title, body, env, extraParams = {}) {
-    if (!env.EMAILJS_SERVICE_ID || !env.EMAILJS_TEMPLATE_ID || !env.EMAILJS_PUBLIC_KEY || !user.email) return false;
+    if (!env.EMAILJS_SERVICE_ID || !env.EMAILJS_TEMPLATE_ID || !env.EMAILJS_PUBLIC_KEY || !user.email) {
+        console.warn("EmailJS Konfiguration oder Empfänger-E-Mail fehlt:", {
+            serviceId: Boolean(env.EMAILJS_SERVICE_ID),
+            templateId: Boolean(env.EMAILJS_TEMPLATE_ID),
+            publicKey: Boolean(env.EMAILJS_PUBLIC_KEY),
+            userEmail: user?.email
+        });
+        return false;
+    }
     const recipientName = user.name || user.email?.split('@')[0] || "Nutzer";
+    const payload = {
+        service_id: env.EMAILJS_SERVICE_ID,
+        template_id: env.EMAILJS_TEMPLATE_ID,
+        user_id: env.EMAILJS_PUBLIC_KEY,
+        ...(env.EMAILJS_PRIVATE_KEY ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
+        template_params: {
+            to_email: user.email,
+            to_name: recipientName,
+            name: recipientName,
+            subject: title,
+            message: body,
+            datetime: extraParams.datetime || "",
+            mapsUrl: extraParams.mapsUrl || "",
+            sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+            from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+            reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
+            ...extraParams
+        }
+    };
     const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            service_id: env.EMAILJS_SERVICE_ID,
-            template_id: env.EMAILJS_TEMPLATE_ID,
-            user_id: env.EMAILJS_PUBLIC_KEY,
-            template_params: {
-                to_email: user.email,
-                to_name: recipientName,
-                name: recipientName,
-                subject: title,
-                message: body,
-                datetime: extraParams.datetime || "",
-                mapsUrl: extraParams.mapsUrl || "",
-                sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-                from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-                reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
-                ...extraParams
-            }
-        })
+        body: JSON.stringify(payload)
     });
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("EmailJS-Versand fehlgeschlagen:", response.status, errorText);
+    }
     return response.ok;
 }
 
@@ -186,7 +200,10 @@ async function sendNotifications(request, env, user) {
     for (const uid of recipientUids) {
         const recipient = await getUserDocument(uid, accessToken, env);
         if (!recipient) continue;
-        if (notificationPreference(recipient, payload.type) && await sendEmail(recipient, title, body, env, extraParams)) result.email++;
+        const shouldSend = (payload.type === "invitations" || payload.type === "test") ? true : notificationPreference(recipient, payload.type);
+        if (shouldSend && await sendEmail(recipient, title, body, env, extraParams)) {
+            result.email++;
+        }
     }
     return result;
 }
