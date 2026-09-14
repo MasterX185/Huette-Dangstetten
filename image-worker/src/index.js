@@ -120,6 +120,17 @@ function notificationPreference(user, type) {
     return preferences[type] !== false && preferences.emailEnabled !== false;
 }
 
+function replacePlaceholders(text, params) {
+    if (typeof text !== "string") return text;
+    let result = text;
+    for (const [key, val] of Object.entries(params)) {
+        if (val !== undefined && val !== null) {
+            result = result.replaceAll(`{{${key}}}`, String(val));
+        }
+    }
+    return result;
+}
+
 async function sendEmail(user, title, body, env, extraParams = {}) {
     if (!env.EMAILJS_SERVICE_ID || !env.EMAILJS_TEMPLATE_ID || !env.EMAILJS_PUBLIC_KEY || !user.email) {
         console.warn("EmailJS Konfiguration oder Empfänger-E-Mail fehlt:", {
@@ -131,6 +142,21 @@ async function sendEmail(user, title, body, env, extraParams = {}) {
         return false;
     }
     const recipientName = user.name || user.email?.split('@')[0] || "Nutzer";
+    const placeholderMap = {
+        name: recipientName,
+        to_name: recipientName,
+        to_email: user.email,
+        datetime: extraParams.datetime || "",
+        mapsUrl: extraParams.mapsUrl || "",
+        sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+        from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+        reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
+        ...extraParams
+    };
+
+    const personalizedSubject = replacePlaceholders(title, placeholderMap);
+    const personalizedBody = replacePlaceholders(body, placeholderMap);
+
     const payload = {
         service_id: env.EMAILJS_SERVICE_ID,
         template_id: env.EMAILJS_TEMPLATE_ID,
@@ -140,8 +166,8 @@ async function sendEmail(user, title, body, env, extraParams = {}) {
             to_email: user.email,
             to_name: recipientName,
             name: recipientName,
-            subject: title,
-            message: body,
+            subject: personalizedSubject,
+            message: personalizedBody,
             datetime: extraParams.datetime || "",
             mapsUrl: extraParams.mapsUrl || "",
             sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
