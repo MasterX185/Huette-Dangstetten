@@ -214,50 +214,99 @@ window.openInvitationModal = async (invId) => {
     }
 
     contentBox.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h3 style="margin:0; color:var(--primary-dark);">Einladungsdetails</h3>
-    <button class="small-btn btn-secondary" onclick="window.closeModal()" style="padding:2px 8px;">✕</button>
+    <div class="inv-modal-header">
+        <div>
+            <div class="inv-modal-title">Einladung</div>
+            <div class="inv-modal-subtitle">Erstellt von ${escapeHtml(inv.createdBy || 'Unbekannt')}</div>
+        </div>
+        <button class="inv-close-btn" onclick="window.closeModal()" aria-label="Schließen">&#x2715;</button>
     </div>
 
-    <div style="font-size:0.9rem; display:flex; flex-direction:column; gap:8px; margin-top:12px;">
-    <div><strong>Datum & Uhrzeit:</strong> ${inv.datetime || 'Nicht angegeben'}</div>
-    <div><strong>Erstellt von:</strong> ${inv.createdBy || 'Unbekannt'}</div>
-    <div><strong>Empfänger:</strong> ${inv.recipients ? inv.recipients.join(', ') : 'Keine'}</div>
-    <div><strong>Hinweise:</strong> ${inv.details || 'Keine'}</div>
-    ${inv.updatedAt ? `<div style="color: var(--primary); font-size: 0.8rem; font-weight: 500;">⚡ Diese Einladung wurde aktualisiert.</div>` : ''}
+    ${inv.updatedAt ? '<div class="inv-updated-badge">&#x26A1; Aktualisiert</div>' : ''}
+
+    <div class="inv-info-grid">
+        <div class="inv-info-row">
+            <div class="inv-info-icon">
+                <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div>
+                <div class="inv-info-label">Datum &amp; Uhrzeit</div>
+                <div class="inv-info-value">${escapeHtml(inv.datetime || 'Nicht angegeben')}</div>
+            </div>
+        </div>
+        ${inv.details ? `
+        <div class="inv-info-row">
+            <div class="inv-info-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </div>
+            <div>
+                <div class="inv-info-label">Hinweise</div>
+                <div class="inv-info-value">${escapeHtml(inv.details)}</div>
+            </div>
+        </div>` : ''}
+        <div class="inv-info-row">
+            <div class="inv-info-icon">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div>
+                <div class="inv-info-label">Empfänger</div>
+                <div class="inv-info-value">${inv.recipients ? escapeHtml(inv.recipients.join(', ')) : 'Keine'}</div>
+            </div>
+        </div>
+    </div>
+
     ${inv.mapsUrl ? `
-        <div>
-        <a href="${inv.mapsUrl}" target="_blank" rel="noopener" style="color:var(--primary); font-weight:500; display:flex; align-items:center; gap:4px; text-decoration:underline;">
+    <a href="${escapeHtml(inv.mapsUrl)}" target="_blank" rel="noopener" class="inv-maps-btn">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
         Standort auf Google Maps öffnen
-        </a>
-        </div>` : ''}
-        </div>
+        <svg class="icon icon-sm" style="margin-left:auto;opacity:0.5" viewBox="0 0 24 24"><path d="M14 3h7v7"/><path d="M10 14 21 3"/></svg>
+    </a>` : ''}
 
-        <div style="border-top:1px solid var(--border); padding-top:12px; margin-top:8px;">
-        <strong>Deine Rückmeldung:</strong>
-        <div style="display:flex; gap:10px; margin-top:8px;">
-        <button class="small-btn" id="rsvp-yes-btn" style="flex:1; background:${myCurrentStatus === 'yes' ? '#059669' : '#10b981'};">
-        ${myCurrentStatus === 'yes' ? '✓ Zugesagt' : 'Ich komme'}
+    <div class="inv-rsvp-section">
+        <div class="inv-rsvp-label">Deine Rückmeldung</div>
+        <div class="inv-rsvp-btns">
+            <button class="inv-rsvp-btn inv-rsvp-yes ${myCurrentStatus === 'yes' ? 'selected' : ''}" id="rsvp-yes-btn">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                ${myCurrentStatus === 'yes' ? 'Zugesagt' : 'Ich komme'}
+            </button>
+            <button class="inv-rsvp-btn inv-rsvp-no ${myCurrentStatus === 'no' ? 'selected' : ''}" id="rsvp-no-btn">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                ${myCurrentStatus === 'no' ? 'Abgesagt' : 'Ich kann nicht'}
+            </button>
+        </div>
+    </div>
+
+    <div class="inv-attendees">
+        <div class="inv-attendees-title">Teilnehmer-Status</div>
+        <div class="inv-attendees-row">
+            <span class="inv-attendee-dot" style="background:var(--success)"></span>
+            <span class="inv-info-label" style="color:var(--success)">Zusagen</span>
+            <span class="inv-attendees-count">${yesList.length}</span>
+        </div>
+        <div style="padding:4px 0 8px 18px">
+            ${yesList.length > 0 ? '<span class="inv-attendees-names">' + escapeHtml(yesList.join(', ')) + '</span>' : '<span class="inv-attendees-empty">Noch keine Zusagen</span>'}
+        </div>
+        <div class="inv-attendees-row">
+            <span class="inv-attendee-dot" style="background:var(--danger)"></span>
+            <span class="inv-info-label" style="color:var(--danger)">Absagen</span>
+            <span class="inv-attendees-count">${noList.length}</span>
+        </div>
+        <div style="padding:4px 0 0 18px">
+            ${noList.length > 0 ? '<span class="inv-attendees-names">' + escapeHtml(noList.join(', ')) + '</span>' : '<span class="inv-attendees-empty">Noch keine Absagen</span>'}
+        </div>
+    </div>
+
+    ${isAdmin ? `
+    <div class="inv-admin-actions">
+        <button class="inv-admin-btn inv-admin-btn-delete" onclick="window.deleteInvitation('${invId}')">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+            Löschen
         </button>
-        <button class="small-btn delete-btn" id="rsvp-no-btn" style="flex:1; opacity:${myCurrentStatus === 'no' ? '1' : '0.8'};">
-        ${myCurrentStatus === 'no' ? '✕ Abgesagt' : 'Ich kann nicht'}
+        <button class="inv-admin-btn inv-admin-btn-edit" onclick="window.startEditingInvitation('${invId}')">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            Bearbeiten &amp; Neu senden
         </button>
-        </div>
-        </div>
-
-        <div style="border-top:1px solid var(--border); padding-top:12px; font-size:0.85rem;">
-        <strong>Teilnehmer-Status:</strong>
-        <div style="color: #059669; font-weight: 500; margin-top: 4px;">Zusagen (${yesList.length}): ${yesList.join(', ') || 'Keine'}</div>
-        <div style="color: var(--danger); font-weight: 500; margin-top: 2px;">Absagen (${noList.length}): ${noList.join(', ') || 'Keine'}</div>
-        </div>
-
-        ${isAdmin ? `
-            <div style="border-top:1px solid var(--border); padding-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-            <button class="small-btn delete-btn" onclick="window.deleteInvitation('${invId}')">Löschen</button>
-            <button class="small-btn" onclick="window.startEditingInvitation('${invId}')">Bearbeiten & Neu senden</button>
-            </div>` : ''}
-            `;
+    </div>` : ''}`;
 
             document.getElementById('rsvp-yes-btn').onclick = () => window.submitRSVP(invId, 'yes');
             document.getElementById('rsvp-no-btn').onclick = () => window.submitRSVP(invId, 'no');

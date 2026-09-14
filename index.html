@@ -261,6 +261,151 @@
         .blog-preview figure { margin: 1em 0; }
         .blog-preview img { display: block; max-width: 100%; height: auto; border-radius: 12px; }
         .blog-preview pre { overflow-x: auto; padding: 12px; background: #111827; color: #f8fafc; border-radius: 8px; }
+
+        /* ── Modal ────────────────────────────────────────────────── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 2000;
+            display: flex; align-items: flex-end; justify-content: center;
+            background: rgba(2, 6, 23, 0.55);
+            backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+            padding: 0 0 env(safe-area-inset-bottom, 0);
+            animation: overlayIn 220ms ease both;
+        }
+        @media (min-width: 540px) {
+            .modal-overlay { align-items: center; padding: 24px; }
+        }
+        @keyframes overlayIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+        .modal-box {
+            width: 100%; max-width: 480px;
+            background: var(--surface);
+            border: 1px solid var(--border-strong);
+            border-radius: 28px 28px 0 0;
+            padding: 28px 24px 32px;
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.22), 0 0 0 1px rgba(255,255,255,0.04);
+            max-height: 92dvh; overflow-y: auto;
+            animation: sheetUp 300ms cubic-bezier(0.34,1.56,0.64,1) both;
+            scrollbar-width: none;
+        }
+        .modal-box::-webkit-scrollbar { display: none; }
+        @media (min-width: 540px) {
+            .modal-box {
+                border-radius: 24px;
+                animation: modalPop 280ms cubic-bezier(0.34,1.4,0.64,1) both;
+                max-height: 88dvh;
+            }
+        }
+        @keyframes sheetUp {
+            from { transform: translateY(48px); opacity: 0; }
+            to   { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.94) translateY(10px); opacity: 0; }
+            to   { transform: scale(1)    translateY(0);    opacity: 1; }
+        }
+
+        /* ── Invitation modal internals ───────────────────────────── */
+        .inv-modal-header {
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+            margin-bottom: 22px;
+        }
+        .inv-modal-title { font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; color: var(--text); }
+        .inv-modal-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; }
+        .inv-close-btn {
+            flex-shrink: 0; width: 34px; height: 34px; border-radius: 50%;
+            border: 1px solid var(--border-strong); background: var(--surface-container);
+            color: var(--text-muted); font-size: 1.1rem; line-height: 1;
+            display: grid; place-items: center; cursor: pointer;
+            transition: background 150ms, color 150ms;
+        }
+        .inv-close-btn:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .inv-info-grid {
+            display: flex; flex-direction: column; gap: 10px;
+            background: var(--surface-container); border-radius: 16px;
+            padding: 16px; margin-bottom: 18px;
+            border: 1px solid var(--border);
+        }
+        .inv-info-row { display: flex; align-items: flex-start; gap: 10px; }
+        .inv-info-icon {
+            flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px;
+            background: var(--primary-light); color: var(--primary);
+            display: grid; place-items: center;
+        }
+        .inv-info-icon .icon { width: 15px; height: 15px; }
+        .inv-info-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+        .inv-info-value { font-size: 0.92rem; font-weight: 500; color: var(--text); margin-top: 2px; }
+
+        .inv-updated-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: color-mix(in srgb, var(--accent) 14%, transparent);
+            color: var(--accent); font-size: 0.75rem; font-weight: 700;
+            padding: 4px 10px; border-radius: 99px; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+            margin-bottom: 14px;
+        }
+
+        .inv-maps-btn {
+            display: flex; align-items: center; gap: 8px;
+            width: 100%; padding: 11px 14px; margin-bottom: 18px;
+            background: var(--surface-container); border: 1px solid var(--border-strong);
+            border-radius: 12px; color: var(--primary); font-size: 0.88rem; font-weight: 600;
+            text-decoration: none; transition: background 150ms, border-color 150ms;
+        }
+        .inv-maps-btn:hover { background: var(--primary-light); border-color: var(--primary); }
+        .inv-maps-btn .icon { flex-shrink: 0; }
+
+        .inv-rsvp-section { margin-bottom: 18px; }
+        .inv-rsvp-label { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; }
+        .inv-rsvp-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .inv-rsvp-btn {
+            padding: 13px 12px; border-radius: 14px; border: 2px solid transparent;
+            font-size: 0.92rem; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            transition: transform 120ms, box-shadow 120ms, background 150ms;
+        }
+        .inv-rsvp-btn:active { transform: scale(0.97); }
+        .inv-rsvp-yes {
+            background: color-mix(in srgb, var(--success) 14%, transparent);
+            color: var(--success); border-color: color-mix(in srgb, var(--success) 40%, transparent);
+        }
+        .inv-rsvp-yes.selected {
+            background: var(--success); color: white; border-color: var(--success);
+            box-shadow: 0 4px 14px color-mix(in srgb, var(--success) 40%, transparent);
+        }
+        .inv-rsvp-no {
+            background: color-mix(in srgb, var(--danger) 10%, transparent);
+            color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+        }
+        .inv-rsvp-no.selected {
+            background: var(--danger); color: white; border-color: var(--danger);
+            box-shadow: 0 4px 14px color-mix(in srgb, var(--danger) 40%, transparent);
+        }
+
+        .inv-attendees {
+            background: var(--surface-container); border-radius: 16px;
+            padding: 14px 16px; border: 1px solid var(--border); margin-bottom: 18px;
+        }
+        .inv-attendees-title { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 10px; }
+        .inv-attendees-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+        .inv-attendees-row + .inv-attendees-row { border-top: 1px solid var(--border); }
+        .inv-attendee-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .inv-attendees-count { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); margin-left: auto; }
+        .inv-attendees-names { font-size: 0.85rem; color: var(--text); flex: 1; }
+        .inv-attendees-empty { font-size: 0.83rem; color: var(--text-muted); font-style: italic; }
+
+        .inv-admin-actions { display: flex; gap: 8px; }
+        .inv-admin-btn {
+            flex: 1; padding: 11px 12px; border-radius: 12px; font-size: 0.85rem; font-weight: 700;
+            cursor: pointer; border: 1px solid var(--border-strong);
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: background 150ms, color 150ms;
+        }
+        .inv-admin-btn-edit { background: var(--primary-light); color: var(--primary-dark); border-color: var(--primary-light); }
+        .inv-admin-btn-edit:hover { background: var(--primary); color: white; border-color: var(--primary); }
+        .inv-admin-btn-delete { background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
+        .inv-admin-btn-delete:hover { background: var(--danger); color: white; border-color: var(--danger); }
     </style>
 </head>
 <body>
