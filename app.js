@@ -623,54 +623,68 @@ async function openGuestEventRequest(accessKey) {
     renderGuestEventRequest(result);
 }
 
-function renderGuestEventRequest(data) {
-    const request = data.request;
-    document.getElementById('guest-request-status').innerHTML = `<strong>Status: ${escapeHtml(request.status)}</strong><p style="margin:8px 0 0;">${escapeHtml(request.adminNote || 'Noch keine Rückmeldung vom Team.')}</p>`;
-    const messages = document.getElementById('guest-request-messages');
-    messages.innerHTML = '';
-    (data.messages || []).forEach(message => {
-        const item = document.createElement('div');
-        item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
-        item.innerHTML = `<strong>${message.sender === 'admin' ? 'HüttenPortal-Team' : 'Du'}</strong><br>${escapeHtml(message.text)}`;
-        messages.appendChild(item);
-    });
-    messages.scrollTop = messages.scrollHeight;
+function getStatusBadge(status) {
+    const labels = {
+        'neu': 'Neu',
+        'in_pruefung': 'In Prüfung',
+        'angenommen': 'Angenommen',
+        'abgelehnt': 'Abgelehnt'
+    };
+    const label = labels[status] || status || 'Neu';
+    return `<span class="request-status-badge status-badge-${status}">${escapeHtml(label)}</span>`;
 }
 
-document.getElementById('open-event-status-btn')?.addEventListener('click', async () => {
-    const key = document.getElementById('event-access-key-input').value.trim();
-    if (!key) return;
-    try { await openGuestEventRequest(key); } catch (error) { authMessage.innerText = error.message; }
-});
-document.getElementById('guest-request-message-btn')?.addEventListener('click', async () => {
-    const input = document.getElementById('guest-request-message-input');
-    if (!guestRequestSession || !input.value.trim()) return;
-    try {
-        const result = await eventRequestApi({ action: 'guest-message', accessKey: guestRequestSession.accessKey, text: input.value });
-        input.value = '';
-        renderGuestEventRequest(result);
-    } catch (error) { alert(error.message); }
-});
-document.getElementById('guest-request-logout-btn')?.addEventListener('click', () => {
-    guestRequestSession = null;
-    sessionStorage.removeItem('event-request-access-key');
-    guestRequestSection.classList.add('hidden');
-    authSection.classList.remove('hidden');
-});
+function renderGuestEventRequest(data) {
+    const request = data.request;
+    const statusContainer = document.getElementById('guest-request-status');
+    if (statusContainer) {
+        statusContainer.innerHTML = `
+            <div class="req-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em;">Anfrage-Status</span>
+                    ${getStatusBadge(request.status)}
+                </div>
+                <div style="font-size:1rem; font-weight:700; color:var(--text);">${escapeHtml(request.eventDate)}</div>
+                <div style="font-size:0.88rem; color:var(--text-muted); margin-top:8px; line-height:1.5;">${escapeHtml(request.adminNote || 'Noch keine Rückmeldung vom Team.')}</div>
+            </div>
+        `;
+    }
+    const messages = document.getElementById('guest-request-messages');
+    if (messages) {
+        messages.innerHTML = '';
+        (data.messages || []).forEach(message => {
+            const item = document.createElement('div');
+            item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
+            item.innerHTML = `<strong>${message.sender === 'admin' ? 'HüttenPortal-Team' : 'Du'}</strong><br>${escapeHtml(message.text)}`;
+            messages.appendChild(item);
+        });
+        messages.scrollTop = messages.scrollHeight;
+    }
+}
 
 async function loadAdminEventRequests() {
     if (currentUserData?.role !== 'admin') return;
     const list = document.getElementById('admin-event-request-list');
-    list.innerHTML = '<em>Anfragen werden geladen …</em>';
+    if (!list) return;
+    list.innerHTML = '<span style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">Anfragen werden geladen …</span>';
     try {
         const result = await eventRequestApi({ action: 'admin-list' }, true);
         adminEventRequests = result.requests || [];
-        list.innerHTML = adminEventRequests.length ? '' : '<em>Keine Event-Anfragen vorhanden.</em>';
+        list.innerHTML = adminEventRequests.length ? '' : '<span style="font-size:0.85rem; color:var(--text-muted); font-style:italic;">Keine Event-Anfragen vorhanden.</span>';
         adminEventRequests.forEach(request => {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = `request-list-item ${activeAdminEventRequest === request.id ? 'active' : ''}`;
-            button.innerHTML = `<strong>${escapeHtml(request.name)}</strong><br><span style="font-size:.8rem; color:var(--text-muted);">${escapeHtml(request.eventDate)} · ${escapeHtml(request.status)}</span>`;
+            button.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+                    <strong style="font-size:0.95rem; color:var(--text);">${escapeHtml(request.name)}</strong>
+                    ${getStatusBadge(request.status)}
+                </div>
+                <div style="font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                    <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    ${escapeHtml(request.eventDate)}
+                </div>
+            `;
             button.onclick = () => openAdminEventRequest(request.id);
             list.appendChild(button);
         });
@@ -683,16 +697,76 @@ async function openAdminEventRequest(requestId) {
         const result = await eventRequestApi({ action: 'admin-detail', requestId }, true);
         const request = result.request;
         const detail = document.getElementById('admin-event-request-detail');
-        detail.innerHTML = `<h3 style="margin-top:0;">${escapeHtml(request.name)}</h3><p class="settings-hint">${escapeHtml(request.email)} · ${escapeHtml(request.eventDate)}</p><p>${escapeHtml(request.details)}</p><div class="settings-row"><select id="admin-request-status"><option value="neu">Neu</option><option value="in_pruefung">In Prüfung</option><option value="angenommen">Angenommen</option><option value="abgelehnt">Abgelehnt</option></select><button id="admin-request-save-btn" class="small-btn" type="button">Status speichern</button></div><textarea id="admin-request-note" rows="3" style="margin-top:8px;" placeholder="Rückmeldung für den Anfrager">${escapeHtml(request.adminNote || '')}</textarea><div id="admin-request-messages" class="guest-chat"></div><div class="settings-row"><input id="admin-request-message-input" type="text" placeholder="Nachricht an den Anfrager"><button id="admin-request-message-btn" class="small-btn" type="button">Senden</button></div>`;
+        if (!detail) return;
+
+        detail.innerHTML = `
+            <div class="req-card" style="background:var(--surface); border-radius:18px; border:1px solid var(--border-strong); padding:20px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; gap:12px;">
+                    <div>
+                        <h3 style="margin:0; font-size:1.2rem; font-weight:700;">${escapeHtml(request.name)}</h3>
+                        <div style="font-size:0.85rem; color:var(--text-muted); margin-top:3px;">
+                            <a href="mailto:${escapeHtml(request.email)}" style="color:var(--primary); text-decoration:none; font-weight:600;">${escapeHtml(request.email)}</a>
+                        </div>
+                    </div>
+                    ${getStatusBadge(request.status)}
+                </div>
+
+                <div class="inv-info-grid" style="margin-bottom:16px;">
+                    <div class="inv-info-row">
+                        <div class="inv-info-icon"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                        <div>
+                            <div class="inv-info-label">Wunschdatum</div>
+                            <div class="inv-info-value">${escapeHtml(request.eventDate)}</div>
+                        </div>
+                    </div>
+                    <div class="inv-info-row">
+                        <div class="inv-info-icon"><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                        <div>
+                            <div class="inv-info-label">Beschreibung / Wünsche</div>
+                            <div class="inv-info-value" style="white-space:pre-wrap; margin-top:4px;">${escapeHtml(request.details)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid var(--border-strong); padding-top:16px; margin-top:16px;">
+                    <label style="display:block; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:8px;">Status &amp; Rückmeldung bearbeiten</label>
+                    <div style="display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                        <select id="admin-request-status" style="flex:1; min-width:140px;">
+                            <option value="neu">Neu</option>
+                            <option value="in_pruefung">In Prüfung</option>
+                            <option value="angenommen">Angenommen</option>
+                            <option value="abgelehnt">Abgelehnt</option>
+                        </select>
+                        <button id="admin-request-save-btn" class="small-btn" type="button" style="flex-shrink:0;">Status speichern</button>
+                    </div>
+                    <textarea id="admin-request-note" rows="3" placeholder="Interne Notiz oder Rückmeldung für den Anfrager">${escapeHtml(request.adminNote || '')}</textarea>
+                </div>
+            </div>
+
+            <div class="req-card" style="background:var(--surface); border-radius:18px; border:1px solid var(--border-strong); padding:20px;">
+                <h4 style="margin:0 0 12px; font-size:0.95rem; font-weight:700;">Nachrichtenverlauf</h4>
+                <div id="admin-request-messages" class="guest-chat" style="margin-bottom:12px; max-height:280px; overflow-y:auto;"></div>
+                <div style="display:flex; gap:8px;">
+                    <input id="admin-request-message-input" type="text" placeholder="Nachricht an ${escapeHtml(request.name)} schreiben...">
+                    <button id="admin-request-message-btn" class="small-btn" type="button" style="flex-shrink:0;">Senden</button>
+                </div>
+            </div>
+        `;
         document.getElementById('admin-request-status').value = request.status;
         const messages = document.getElementById('admin-request-messages');
         (result.messages || []).forEach(message => {
-            const item = document.createElement('div'); item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
-            item.innerHTML = `<strong>${message.sender === 'admin' ? 'Team' : 'Anfrager'}</strong><br>${escapeHtml(message.text)}`; messages.appendChild(item);
+            const item = document.createElement('div');
+            item.className = `guest-message ${message.sender === 'admin' ? 'admin' : ''}`;
+            item.innerHTML = `<strong>${message.sender === 'admin' ? 'HüttenPortal-Team' : escapeHtml(request.name)}</strong><br>${escapeHtml(message.text)}`;
+            messages.appendChild(item);
         });
+        messages.scrollTop = messages.scrollHeight;
+
         document.getElementById('admin-request-save-btn').onclick = async () => {
             const updated = await eventRequestApi({ action: 'admin-update', requestId, status: document.getElementById('admin-request-status').value, adminNote: document.getElementById('admin-request-note').value }, true);
-            await openAdminEventRequest(requestId); await loadAdminEventRequests(); return updated;
+            await openAdminEventRequest(requestId);
+            await loadAdminEventRequests();
+            return updated;
         };
         document.getElementById('admin-request-message-btn').onclick = async () => {
             const input = document.getElementById('admin-request-message-input');
@@ -934,6 +1008,43 @@ function loadTags() {
     activeUnsubscribes.push(unsub);
 }
 
+window.deleteTemplate = async (templateId) => {
+    if (!currentUserData || currentUserData.role !== 'admin') return;
+    if (!confirm('Möchtest du diese Vorlage wirklich löschen?')) return;
+    try {
+        await deleteDoc(doc(db, "templates", templateId));
+        const select = document.getElementById('template-select');
+        if (select && select.value === templateId) {
+            select.value = '';
+            document.getElementById('delete-template-btn')?.classList.add('hidden');
+        }
+    } catch (err) {
+        alert('Fehler beim Löschen der Vorlage: ' + err.message);
+    }
+};
+
+function renderAdminTemplates() {
+    const container = document.getElementById('saved-templates-management-list');
+    if (!container) return;
+    if (!templatesList.length) {
+        container.innerHTML = '<span style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Keine gespeicherten Vorlagen vorhanden.</span>';
+        return;
+    }
+    container.innerHTML = '';
+    templatesList.forEach(tpl => {
+        const item = document.createElement('div');
+        item.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:var(--surface-container); border:1px solid var(--border); border-radius:12px; margin-bottom:6px; gap:12px;';
+        item.innerHTML = `
+            <div style="min-width:0; flex:1;">
+                <strong style="font-size:0.9rem; color:var(--text); display:block; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${escapeHtml(tpl.name)}</strong>
+                <div style="font-size:0.78rem; color:var(--text-muted); text-overflow:ellipsis; overflow:hidden; white-space:nowrap; margin-top:2px;">${escapeHtml(tpl.subject || 'Kein Betreff')}</div>
+            </div>
+            <button class="small-btn delete-btn" onclick="window.deleteTemplate('${tpl.id}')" style="padding:6px 12px; font-size:0.78rem; flex-shrink:0;">Löschen</button>
+        `;
+        container.appendChild(item);
+    });
+}
+
 function loadTemplates() {
     const unsub = onSnapshot(collection(db, "templates"), (snapshot) => {
         templatesList = [];
@@ -941,6 +1052,7 @@ function loadTemplates() {
 
         const select = document.getElementById('template-select');
         if (select) {
+            const currentVal = select.value;
             select.innerHTML = '<option value="">-- Neue Nachricht / Keine Vorlage --</option>';
             templatesList.forEach(tpl => {
                 const opt = document.createElement('option');
@@ -948,17 +1060,30 @@ function loadTemplates() {
                 opt.innerText = tpl.name;
                 select.appendChild(opt);
             });
+            select.value = currentVal;
+            const delBtn = document.getElementById('delete-template-btn');
+            if (delBtn) delBtn.classList.toggle('hidden', !select.value);
         }
+        renderAdminTemplates();
     });
     activeUnsubscribes.push(unsub);
 }
 
 document.getElementById('template-select')?.addEventListener('change', (e) => {
     const tplId = e.target.value;
+    const delBtn = document.getElementById('delete-template-btn');
+    if (delBtn) delBtn.classList.toggle('hidden', !tplId);
     const tpl = templatesList.find(t => t.id === tplId);
     if (tpl) {
         document.getElementById('email-subject-input').value = tpl.subject || '';
         document.getElementById('email-message-input').value = tpl.content || '';
+    }
+});
+
+document.getElementById('delete-template-btn')?.addEventListener('click', () => {
+    const select = document.getElementById('template-select');
+    if (select && select.value) {
+        window.deleteTemplate(select.value);
     }
 });
 

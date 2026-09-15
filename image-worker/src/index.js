@@ -306,19 +306,35 @@ async function getAdminUsers(accessToken, env) {
 async function notifyEventAdmins(eventRequest, accessToken, env) {
     try {
         const admins = await getAdminUsers(accessToken, env);
-        const subject = "Neue Event-Anfrage";
-        const body = `${eventRequest.name} hat für den ${eventRequest.eventDate} eine Event-Anfrage gestellt.\n\n${eventRequest.details}`;
-        await Promise.all(admins.filter(admin => notificationPreference(admin, "eventRequests")).map(admin => sendEmail(admin, subject, body, env)));
+        const subject = "Neue Event-Anfrage von {{sender}}";
+        const body = "Hallo {{name}},\n\nes gibt eine neue Event-Anfrage von {{sender}} für den {{datetime}}:\n\n" + (eventRequest.details || "");
+        const extraParams = {
+            datetime: eventRequest.eventDate || "",
+            sender: eventRequest.name || "Gast",
+            name: eventRequest.name || "Gast"
+        };
+        for (const admin of admins) {
+            if (admin.email && admin.notificationPreferences?.eventRequests !== false) {
+                await sendEmail(admin, subject, body, env, extraParams);
+            }
+        }
     } catch (error) {
-        console.warn("Admin-Benachrichtigung für Event-Anfrage fehlgeschlagen", error);
+        console.warn("Admin-Benachrichtigung für Event-Anfrage fehlgeschlagen:", error);
     }
 }
 
 async function notifyEventRequester(eventRequest, subject, body, env) {
     try {
-        await sendEmail({ email: eventRequest.email }, subject, body, env);
+        if (eventRequest && eventRequest.email) {
+            const extraParams = {
+                datetime: eventRequest.eventDate || "",
+                name: eventRequest.name || "Anfrager",
+                sender: "Dein Hütten-Team"
+            };
+            await sendEmail({ email: eventRequest.email, name: eventRequest.name }, subject, body, env, extraParams);
+        }
     } catch (error) {
-        console.warn("E-Mail an Anfrager fehlgeschlagen", error);
+        console.warn("E-Mail an Anfrager fehlgeschlagen:", error);
     }
 }
 
