@@ -416,6 +416,10 @@ async function handleEventRequest(request, env) {
         await notifyEventRequester(eventRequest, "Neue Nachricht zu deiner Event-Anfrage", `Das HüttenPortal-Team schreibt:\n\n${eventValue(payload.text, 2000)}`, env);
         return eventRequestResponse(document, token, env);
     }
+    if (payload.action === "admin-delete") {
+        await firestoreApi(`/eventRequests/${encodeURIComponent(requestId)}`, { method: "DELETE" }, token, env);
+        return { success: true };
+    }
     if (payload.action === "admin-update") {
         const status = eventValue(payload.status, 40);
         if (!new Set(["neu", "in_pruefung", "angenommen", "abgelehnt"]).has(status)) throw new Error("Ungültiger Status.");
