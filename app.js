@@ -532,10 +532,14 @@ document.querySelectorAll('[data-menu-tab]').forEach(item => {
     item.addEventListener('click', () => selectAppMenuTab(item.dataset.menuTab));
 });
 
-// Hilfeseite Modal Button auf Login-Bildschirm
+// Hilfeseite-Modal auf dem Login-Bildschirm steuern
 document.getElementById('open-help-modal-btn')?.addEventListener('click', () => {
     document.getElementById('help-modal')?.classList.remove('hidden');
-    loadGitHubReadme();
+    loadGitHubReadme('modal-github-readme-container');
+});
+
+document.getElementById('close-help-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('help-modal')?.classList.add('hidden');
 });
 
 document.getElementById('mobile-back-btn')?.addEventListener('click', () => {
@@ -546,14 +550,14 @@ document.getElementById('mobile-back-btn')?.addEventListener('click', () => {
 });
 
 
-async function loadGitHubReadme() {
-    const container = document.getElementById('github-readme-container');
+// Dynamisches Laden der HELP.md für beliebige Container
+async function loadGitHubReadme(containerId = 'github-readme-container') {
+    const container = document.getElementById(containerId);
     if (!container) return;
 
     container.innerHTML = '<span style="color: var(--text-muted); font-style: italic;">Anleitung wird geladen...</span>';
 
     try {
-        // Raw-URL für das Fetching der HELP.md
         const response = await fetch('https://raw.githubusercontent.com/MasterX185/Huette-Dangstetten/main/DOCUMENTATION/HELP.md');
         if (!response.ok) throw new Error('Anleitung konnte nicht geladen werden.');
         
