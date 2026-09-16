@@ -115,6 +115,19 @@
            border: 1px solid var(--border-strong);
         }
 
+
+        /* Globale Akzentfarbe & Dark-Mode Dropdowns */
+            input[type="checkbox"], input[type="radio"] {
+                accent-color: var(--primary);
+            }
+
+            :root[data-theme="dark"] select option,
+            body.dark-mode select option,
+            [data-theme="dark"] select option {
+                background-color: var(--surface);
+                color: var(--text);
+            }
+
         /* Icons */
         .icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .icon-lg { width: 26px; height: 26px; }
@@ -693,6 +706,10 @@
                 </span>
                 <span id="theme-toggle-state" class="theme-toggle-state">Hell</span>
             </button>
+            <button id="menu-help-btn" class="menu-item" data-menu-tab="help" type="button">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Hilfe & Support</span>
+            </button>
         </aside>
 
         <header class="app-bar">
@@ -982,6 +999,23 @@
                 <div id="saved-locations-management-list" style="margin-top: 10px;"></div>
             </div>
         </div>
+        <!-- Tab: Hilfe & Support -->
+<div id="tab-help-content" class="container hidden">
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <h2 style="margin: 0;">Hilfe &amp; Anleitung</h2>
+            <a href="https://github.com/MasterX185/Huette-Dangstetten#readme" target="_blank" rel="noopener" class="small-btn btn-secondary" style="text-decoration: none;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Auf GitHub öffnen
+            </a>
+        </div>
+        
+        <!-- Hier wird die README.md dynamisch gerendert -->
+        <div id="github-readme-container" class="blog-preview" style="margin-top: 0; border: none; padding: 0; background: transparent;">
+            <span style="color: var(--text-muted); font-style: italic;">Anleitung wird geladen...</span>
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="app-credits" aria-label="Credits und Projektlinks">
