@@ -52,6 +52,40 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
     eventRequests: true
 };
 
+
+// Generiert einheitliche Tag-Badges
+function renderTagsHtml(tags = [], maxDisplay = null) {
+    if (!tags || tags.length === 0) return '';
+    const displayTags = maxDisplay ? tags.slice(0, maxDisplay) : tags;
+    const overflowCount = maxDisplay && tags.length > maxDisplay ? tags.length - maxDisplay : 0;
+
+    let html = displayTags.map(tag => 
+        `<span class="badge-tag">#${escapeHtml(tag)}</span>`
+    ).join(' ');
+
+    if (overflowCount > 0) {
+        html += ` <span class="badge-tag-more">+${overflowCount}</span>`;
+    }
+    return `<div class="user-tags-wrapper">${html}</div>`;
+}
+
+// Generiert ein vollständiges Profil-Element (Avatar + Name + E-Mail + Tags)
+function renderUserProfileBadge(user, options = { maxTags: 2, showEmail: true }) {
+    const avatar = getAvatarMarkup(user); // Nutzt deine bestehende Avatar-Funktion
+    const tagsHtml = renderTagsHtml(user.tags, options.maxTags);
+    
+    return `
+        <div class="user-profile-badge">
+            <div class="user-profile-avatar">${avatar}</div>
+            <div class="user-profile-info">
+                <div class="user-profile-name">${escapeHtml(user.name || 'Unbenannt')}</div>
+                ${options.showEmail && user.email ? `<div class="user-profile-email">${escapeHtml(user.email)}</div>` : ''}
+                ${tagsHtml}
+            </div>
+        </div>
+    `;
+}
+
 async function handleRSVPFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const invId = urlParams.get('rsvp_inv');
