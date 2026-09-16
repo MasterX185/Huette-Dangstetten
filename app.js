@@ -64,7 +64,7 @@ function escapeHtml(value) {
 function getAvatarMarkup(user, fallback = 'U') {
     const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
     return photoUrl
-        ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+        ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;">`
         : escapeHtml((user?.name || fallback).slice(0, 1).toUpperCase());
 }
 
