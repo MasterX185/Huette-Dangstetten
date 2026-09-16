@@ -90,6 +90,31 @@
             *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
         }
 
+            /* Modernisierung: Glass-Effekt für die App-Bar und das Menü */
+        .app-bar { 
+            backdrop-filter: blur(12px); 
+          -webkit-backdrop-filter: blur(12px);
+          background: color-mix(in srgb, var(--background) 85%, transparent); 
+        }
+
+        .app-menu {
+           backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+           background: color-mix(in srgb, var(--surface) 90%, transparent);
+        }
+
+        /* Menü-Items strikt linksbündig */
+        .menu-item { 
+            justify-content: flex-start; /* Erzwingt Ausrichtung nach links */
+            text-align: left; 
+}
+
+        /* Schatten und Ränder für Cards etwas weicher machen */
+        .card {
+            box-shadow: 0 2px 16px rgba(15, 23, 42, 0.04);
+           border: 1px solid var(--border-strong);
+        }
+
         /* Icons */
         .icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .icon-lg { width: 26px; height: 26px; }
@@ -350,6 +375,10 @@
         }
         @media (min-width: 540px) {
             .modal-overlay { align-items: center; padding: 24px; }
+        }
+        
+        @media (min-width: 768px) {
+            #mobile-back-btn { display: none !important; }
         }
         @keyframes overlayIn {
             from { opacity: 0; }
@@ -732,6 +761,10 @@
                 <!-- Chat Hauptfenster -->
                 <div id="chat-main" class="chat-main">
                     <div class="chat-header-bar">
+                        <button id="mobile-back-btn" class="nav-btn" style="display: flex; flex-direction: row; font-size: 0.9rem; margin-bottom: 12px;">
+                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+                          Zurück zur Übersicht
+                        </button>
                         <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
                             <button id="mobile-back-btn" class="small-btn btn-secondary" style="display: none; padding: 6px 10px;">
                                 <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>

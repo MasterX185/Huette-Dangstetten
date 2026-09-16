@@ -1822,12 +1822,23 @@ window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
             msgDiv.className = `message-bubble ${isMe ? 'my-message' : 'other-message'}`;
             const timeStr = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
             const imageUrl = /^https:\/\//i.test(msg.imageUrl || '') ? msg.imageUrl : '';
+            // Innerhalb von window.switchChatRoom in onSnapshot:
+            const senderTags = sender.tags && sender.tags.length > 0 
+                ? `<div style="font-size: 0.7rem; color: var(--primary); margin-top: 2px;">${sender.tags.map(t => '#' + t).join(' ')}</div>` 
+                : '';
+
             msgDiv.innerHTML = `
-            ${!isMe ? `<div class="msg-sender">${escapeHtml(msg.senderName || msg.senderEmail)}</div>` : ''}
-            ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
-            ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img class="chat-image" src="${escapeHtml(imageUrl)}" alt="Geteiltes Bild" loading="lazy"></a>` : ''}
-            <div class="msg-time">${timeStr}</div>
-            `;
+            ${!isMe ? `
+                    <div class="msg-sender" style="display: flex; flex-direction: column; line-height: 1.2; margin-bottom: 4px;">
+                    <strong>${escapeHtml(sender.name || 'Unbenannt')}</strong>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(sender.email || msg.senderEmail)}</span>
+                    ${senderTags}
+        </div>
+    ` : ''}
+    ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+    ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img class="chat-image" src="${escapeHtml(imageUrl)}" alt="Geteiltes Bild" loading="lazy"></a>` : ''}
+    <div class="msg-time">${timeStr}</div>
+`;
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.innerHTML = getAvatarMarkup(sender);
