@@ -512,6 +512,45 @@
         .inv-admin-btn-edit:hover { background: var(--primary); color: white; border-color: var(--primary); }
         .inv-admin-btn-delete { background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
         .inv-admin-btn-delete:hover { background: var(--danger); color: white; border-color: var(--danger); }
+
+        .user-profile-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .user-profile-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+           text-align: left;
+        }
+        .user-profile-name {
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+        .user-profile-email {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .user-tags-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 2px;
+        }
+        .badge-tag {
+            font-size: 0.7rem;
+            padding: 1px 6px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--primary) 15%, transparent);
+            color: var(--primary);
+            font-weight: 500;
+        }
+        .badge-tag-more {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
