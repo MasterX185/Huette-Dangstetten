@@ -1002,22 +1002,17 @@
         <!-- Tab: Hilfe & Support -->
 <div id="tab-help-content" class="container hidden">
     <div class="card">
-        <h2>Hilfe & Häufig gestellte Fragen (FAQ)</h2>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Antworten auf die wichtigsten Fragen zur Nutzung der Plattform.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
+            <h2 style="margin: 0;">Hilfe &amp; Anleitung</h2>
+            <a href="https://github.com/MasterX185/Huette-Dangstetten#readme" target="_blank" rel="noopener" class="small-btn btn-secondary" style="text-decoration: none;">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Auf GitHub öffnen
+            </a>
+        </div>
         
-        <div class="faq-item" style="margin-bottom: 16px;">
-            <h3>Wie funktionieren die Tags?</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Tags filtern Mitglieder nach Rollen/Interessen und schalten exklusive Gruppenchats frei.</p>
-        </div>
-
-        <div class="faq-item" style="margin-bottom: 16px;">
-            <h3>Wie erstelle ich einen Gruppenchat?</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Klicke im Chat auf "Neu" und erstelle als Admin eine neue Gruppe oder wähle Mitglieder aus.</p>
-        </div>
-
-        <div class="faq-item">
-            <h3>Support kontaktieren</h3>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Bei Fragen wende dich an den Admin unter <a href="mailto:huette-dangstetten@gmx.de" style="color: var(--primary); font-weight: 600;">huette-dangstetten@gmx.de</a>.</p>
+        <!-- Hier wird die README.md dynamisch gerendert -->
+        <div id="github-readme-container" class="blog-preview" style="margin-top: 0; border: none; padding: 0; background: transparent;">
+            <span style="color: var(--text-muted); font-style: italic;">Anleitung wird geladen...</span>
         </div>
     </div>
 </div>
