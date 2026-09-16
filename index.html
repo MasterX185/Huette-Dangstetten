@@ -115,6 +115,19 @@
            border: 1px solid var(--border-strong);
         }
 
+
+        /* Globale Akzentfarbe & Dark-Mode Dropdowns */
+            input[type="checkbox"], input[type="radio"] {
+                accent-color: var(--primary);
+            }
+
+            :root[data-theme="dark"] select option,
+            body.dark-mode select option,
+            [data-theme="dark"] select option {
+                background-color: var(--surface);
+                color: var(--text);
+            }
+
         /* Icons */
         .icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
         .icon-lg { width: 26px; height: 26px; }
@@ -693,6 +706,10 @@
                 </span>
                 <span id="theme-toggle-state" class="theme-toggle-state">Hell</span>
             </button>
+            <button id="menu-help-btn" class="menu-item" data-menu-tab="help" type="button">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Hilfe & Support</span>
+            </button>
         </aside>
 
         <header class="app-bar">
@@ -982,6 +999,28 @@
                 <div id="saved-locations-management-list" style="margin-top: 10px;"></div>
             </div>
         </div>
+        <!-- Tab: Hilfe & Support -->
+<div id="tab-help-content" class="container hidden">
+    <div class="card">
+        <h2>Hilfe & Häufig gestellte Fragen (FAQ)</h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Antworten auf die wichtigsten Fragen zur Nutzung der Plattform.</p>
+        
+        <div class="faq-item" style="margin-bottom: 16px;">
+            <h3>Wie funktionieren die Tags?</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Tags filtern Mitglieder nach Rollen/Interessen und schalten exklusive Gruppenchats frei.</p>
+        </div>
+
+        <div class="faq-item" style="margin-bottom: 16px;">
+            <h3>Wie erstelle ich einen Gruppenchat?</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Klicke im Chat auf "Neu" und erstelle als Admin eine neue Gruppe oder wähle Mitglieder aus.</p>
+        </div>
+
+        <div class="faq-item">
+            <h3>Support kontaktieren</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Bei Fragen wende dich an den Admin unter <a href="mailto:huette-dangstetten@gmx.de" style="color: var(--primary); font-weight: 600;">huette-dangstetten@gmx.de</a>.</p>
+        </div>
+    </div>
+</div>
     </div>
 
     <div class="app-credits" aria-label="Credits und Projektlinks">

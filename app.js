@@ -18,7 +18,6 @@ const firebaseConfig = {
     appId: "1:700971650309:web:0793b2667578bc8eea7b6c"
 };
 
-// Nach dem Deploy auf die URL deines Workers setzen.
 const IMAGE_UPLOAD_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/upload";
 const NOTIFICATION_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/notify";
 const EVENT_REQUEST_WORKER_URL = "https://huettenportal-image-worker.j-s-schulze.workers.dev/event-request";
@@ -52,8 +51,23 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
     eventRequests: true
 };
 
+// --- Hilfsfunktionen für Profilanzeige & HTML-Escaping ---
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
-// Generiert einheitliche Tag-Badges
+function getAvatarMarkup(user, fallback = 'U') {
+    const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
+    return photoUrl
+        ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
+        : escapeHtml((user?.name || fallback).slice(0, 1).toUpperCase());
+}
+
 function renderTagsHtml(tags = [], maxDisplay = null) {
     if (!tags || tags.length === 0) return '';
     const displayTags = maxDisplay ? tags.slice(0, maxDisplay) : tags;
@@ -69,21 +83,19 @@ function renderTagsHtml(tags = [], maxDisplay = null) {
     return `<div class="user-tags-wrapper">${html}</div>`;
 }
 
-// Generiert ein vollständiges Profil-Element (Avatar + Name + E-Mail + Tags)
 function renderUserProfileBadge(user, options = { maxTags: 2, showEmail: true }) {
-    const avatar = getAvatarMarkup(user); // Nutzt deine bestehende Avatar-Funktion
-    const tagsHtml = renderTagsHtml(user.tags, options.maxTags);
+    const avatar = getAvatarMarkup(user);
+    const tagsHtml = renderTagsHtml(user?.tags || [], options.maxTags);
     
     return `
-        <div class="user-profile-badge">
-            <div class="user-profile-avatar">${avatar}</div>
-            <div class="user-profile-info">
-                <div class="user-profile-name">${escapeHtml(user.name || 'Unbenannt')}</div>
-                ${options.showEmail && user.email ? `<div class="user-profile-email">${escapeHtml(user.email)}</div>` : ''}
-                ${tagsHtml}
-            </div>
+    <div class="user-profile-badge">
+        <div class="user-profile-avatar">${avatar}</div>
+        <div class="user-profile-info">
+            <div class="user-profile-name">${escapeHtml(user?.name ?? 'Unbenannt')}</div>${options.showEmail && user?.email ? `<div class="user-profile-email">${escapeHtml(user.email)}</div>` : ''}
+            ${tagsHtml}
         </div>
-    `;
+    </div>
+`;
 }
 
 async function handleRSVPFromURL() {
@@ -342,10 +354,10 @@ window.openInvitationModal = async (invId) => {
         </button>
     </div>` : ''}`;
 
-            document.getElementById('rsvp-yes-btn').onclick = () => window.submitRSVP(invId, 'yes');
-            document.getElementById('rsvp-no-btn').onclick = () => window.submitRSVP(invId, 'no');
+    document.getElementById('rsvp-yes-btn').onclick = () => window.submitRSVP(invId, 'yes');
+    document.getElementById('rsvp-no-btn').onclick = () => window.submitRSVP(invId, 'no');
 
-            modal.classList.remove('hidden');
+    modal.classList.remove('hidden');
 };
 
 window.submitRSVP = async (invId, status) => {
@@ -423,33 +435,36 @@ const navInviteBtn = document.getElementById('nav-invite-btn');
 const navBlogBtn = document.getElementById('nav-blog-btn');
 const navChatBtn = document.getElementById('nav-chat-btn');
 const navProfileBtn = document.getElementById('nav-profile-btn');
+const menuHelpBtn = document.getElementById('menu-help-btn');
+
 const tabInviteContent = document.getElementById('tab-invite-content');
 const tabBlogContent = document.getElementById('tab-blog-content');
 const tabChatContent = document.getElementById('tab-chat-content');
 const tabProfileContent = document.getElementById('tab-profile-content');
 const tabEventRequestsContent = document.getElementById('tab-event-requests-content');
+const tabHelpContent = document.getElementById('tab-help-content');
 const menuEventRequestsBtn = document.getElementById('menu-event-requests-btn');
 
 function switchTab(activeBtn, activeContent) {
     [navInviteBtn, navBlogBtn, navChatBtn, navProfileBtn].forEach(b => b && b.classList.remove('active'));
-    [tabInviteContent, tabBlogContent, tabChatContent, tabProfileContent, tabEventRequestsContent].forEach(c => c && c.classList.add('hidden'));
-    activeBtn.classList.add('active');
-    activeContent.classList.remove('hidden');
+    [tabInviteContent, tabBlogContent, tabChatContent, tabProfileContent, tabEventRequestsContent, tabHelpContent].forEach(c => c && c.classList.add('hidden'));
+    if (activeBtn) activeBtn.classList.add('active');
+    if (activeContent) activeContent.classList.remove('hidden');
     if (activeBtn === navInviteBtn && map) {
         setTimeout(() => map.invalidateSize(), 200);
     }
 }
 
-navInviteBtn.addEventListener('click', () => switchTab(navInviteBtn, tabInviteContent));
-navBlogBtn.addEventListener('click', () => switchTab(navBlogBtn, tabBlogContent));
-navChatBtn.addEventListener('click', () => {
+navInviteBtn?.addEventListener('click', () => switchTab(navInviteBtn, tabInviteContent));
+navBlogBtn?.addEventListener('click', () => switchTab(navBlogBtn, tabBlogContent));
+navChatBtn?.addEventListener('click', () => {
     switchTab(navChatBtn, tabChatContent);
     if (window.innerWidth < 768) {
         document.getElementById('chat-sidebar').style.display = 'flex';
         document.getElementById('chat-main').style.display = 'none';
     }
 });
-navProfileBtn.addEventListener('click', () => {
+navProfileBtn?.addEventListener('click', () => {
     switchTab(navProfileBtn, tabProfileContent);
     renderProfileTags();
 });
@@ -487,7 +502,8 @@ function selectAppMenuTab(tabName) {
         blog: [navBlogBtn, tabBlogContent, 'Blog'],
         chat: [navChatBtn, tabChatContent, 'Chat'],
         profile: [navProfileBtn, tabProfileContent, 'Profil & Verwaltung'],
-        'event-requests': [menuEventRequestsBtn, tabEventRequestsContent, 'Event-Anfragen']
+        'event-requests': [menuEventRequestsBtn, tabEventRequestsContent, 'Event-Anfragen'],
+        help: [menuHelpBtn, tabHelpContent, 'Hilfe & Support']
     };
     const target = tabMap[tabName];
     if (!target) return;
@@ -513,14 +529,22 @@ document.querySelectorAll('[data-menu-tab]').forEach(item => {
     item.addEventListener('click', () => selectAppMenuTab(item.dataset.menuTab));
 });
 
-document.getElementById('mobile-back-btn').addEventListener('click', () => {
+// Hilfeseite Modal Button auf Login-Bildschirm
+document.getElementById('open-help-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('help-modal')?.classList.remove('hidden');
+});
+document.getElementById('close-help-modal-btn')?.addEventListener('click', () => {
+    document.getElementById('help-modal')?.classList.add('hidden');
+});
+
+document.getElementById('mobile-back-btn')?.addEventListener('click', () => {
     if (window.innerWidth < 768) {
         document.getElementById('chat-sidebar').style.display = 'flex';
         document.getElementById('chat-main').style.display = 'none';
     }
 });
 
-authToggleBtn.addEventListener('click', () => {
+authToggleBtn?.addEventListener('click', () => {
     isRegistering = !isRegistering;
     authTitle.innerText = isRegistering ? 'Registrieren' : 'Anmelden';
     authSubmitBtn.innerText = isRegistering ? 'Account erstellen' : 'Anmelden';
@@ -533,7 +557,7 @@ authToggleBtn.addEventListener('click', () => {
     authMessage.innerText = '';
 });
 
-authSubmitBtn.addEventListener('click', async () => {
+authSubmitBtn?.addEventListener('click', async () => {
     const email = authEmail.value.trim();
     const password = authPassword.value;
     const name = authName.value.trim();
@@ -558,7 +582,6 @@ authSubmitBtn.addEventListener('click', async () => {
     }
 });
 
-// Passwort vergessen Handler mit Firebase Auth sendPasswordResetEmail
 if (forgotPasswordBtn) {
     forgotPasswordBtn.addEventListener('click', async (e) => {
         e.preventDefault();
@@ -593,15 +616,15 @@ async function signInWithProvider(provider, providerName) {
             try {
                 await signInWithRedirect(auth, provider);
             } catch (redirectErr) {
-                authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen: ${redirectErr.message}`;
+                authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen:${redirectErr.message}`;
             }
         } else {
-            authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen: ${error.message}`;
+            authMessage.innerText = `${providerName}-Anmeldung fehlgeschlagen:${error.message}`;
         }
     }
 }
 
-googleLoginBtn.addEventListener('click', () => {
+googleLoginBtn?.addEventListener('click', () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
     signInWithProvider(provider, 'Google');
@@ -711,8 +734,7 @@ async function loadAdminEventRequests() {
             button.className = `request-list-item ${activeAdminEventRequest === request.id ? 'active' : ''}`;
             button.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                    <strong style="font-size:0.95rem; color:var(--text);">${escapeHtml(request.name)}</strong>
-                    ${getStatusBadge(request.status)}
+                    <strong style="font-size:0.95rem; color:var(--text);">${escapeHtml(request.name)}</strong>${getStatusBadge(request.status)}
                 </div>
                 <div style="font-size:0.8rem; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
                     <svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -933,7 +955,7 @@ document.getElementById('notify-email-enabled')?.addEventListener('change', (eve
     saveNotificationPreferences();
 });
 
-document.getElementById('change-email-btn').addEventListener('click', async () => {
+document.getElementById('change-email-btn')?.addEventListener('click', async () => {
     const newEmail = document.getElementById('new-email-input').value.trim();
     const msg = document.getElementById('email-change-msg');
     if (!newEmail) return;
@@ -948,7 +970,7 @@ document.getElementById('change-email-btn').addEventListener('click', async () =
     }
 });
 
-document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+document.getElementById('logout-btn')?.addEventListener('click', () => signOut(auth));
 
 document.getElementById('upload-profile-image-btn')?.addEventListener('click', async () => {
     const fileInput = document.getElementById('profile-image-file-input');
@@ -1147,29 +1169,13 @@ document.getElementById('save-template-btn')?.addEventListener('click', async ()
     }
 });
 
-function escapeHtml(value) {
-    return String(value)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/\"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function getAvatarMarkup(user, fallback = 'U') {
-    const photoUrl = typeof user?.photoURL === 'string' && /^https:\/\//i.test(user.photoURL) ? user.photoURL : '';
-    return photoUrl
-        ? `<img src="${escapeHtml(photoUrl)}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`
-        : escapeHtml((user?.name || fallback).slice(0, 1).toUpperCase());
-}
-
 function formatBlogDateTime(type) {
     const now = new Date();
     const date = now.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const time = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     if (type === 'date') return date;
     if (type === 'time') return time;
-    return `${date} ${time}`;
+    return `${date}${time}`;
 }
 
 function replaceBlogTokens(value) {
@@ -1521,7 +1527,7 @@ function renderAdminTags() {
         div.style.justifyContent = 'space-between';
         div.style.alignItems = 'center';
         div.innerHTML = `
-        <span class="tag-badge">${t.name}</span>
+        <span class="tag-badge">${escapeHtml(t.name)}</span>
         <button class="small-btn delete-btn" onclick="window.deleteTag('${t.id}', '${t.name}')">Gruppe löschen</button>
         `;
         container.appendChild(div);
@@ -1535,13 +1541,7 @@ function renderUserChips() {
     usersList.forEach(u => {
         const chip = document.createElement('div');
         chip.className = `user-chip ${selectedUserEmails.has(u.email) ? 'selected' : ''}`;
-        chip.innerHTML = `
-        <div class="user-chip-icon">${u.name ? u.name[0].toUpperCase() : 'U'}</div>
-        <div class="user-chip-info">
-        <div class="user-chip-name">${u.name || 'Unbenannt'}</div>
-        <div class="user-chip-email">${u.email}</div>
-        </div>
-        `;
+        chip.innerHTML = renderUserProfileBadge(u, { maxTags: 2, showEmail: true });
         chip.onclick = () => {
             if (selectedUserEmails.has(u.email)) selectedUserEmails.delete(u.email);
             else selectedUserEmails.add(u.email);
@@ -1586,7 +1586,7 @@ function loadLocations() {
                 itemDiv.innerHTML = `
                 <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
                 <svg class="icon" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <strong>${loc.name}</strong>
+                <strong>${escapeHtml(loc.name)}</strong>
                 </div>
                 <button class="small-btn delete-btn" onclick="window.deleteLocation('${loc.id}')">Löschen</button>
                 `;
@@ -1633,7 +1633,7 @@ async function createNewInvitation() {
     const subjectTemplate = document.getElementById('email-subject-input').value;
     const messageTemplate = document.getElementById('email-message-input').value;
     const center = map ? map.getCenter() : { lat: 47.5750, lng: 8.2860 };
-    const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+    const mapsUrl = `[https://www.google.com/maps?q=$](https://www.google.com/maps?q=$){center.lat},${center.lng}`;
 
     const recipientEmails = selectedUsers.map(u => u.email);
 
@@ -1650,7 +1650,7 @@ async function createNewInvitation() {
 
         await dispatchNotifications('invitations', selectedUsers.map(user => user.id), subjectTemplate || 'Neue Einladung', messageTemplate || datetime, { invitationId: invitationRef.id, datetime, mapsUrl });
 
-        alert('Einladungen erfolgreich und personalisiert versendet!');
+        alert('Einladungen erfolgreich versendet!');
     } catch (err) {
         alert('Fehler beim Versenden: ' + (err.message || JSON.stringify(err)));
     }
@@ -1669,7 +1669,7 @@ window.updateAndResendInvitation = async (invId) => {
     const subjectTemplate = document.getElementById('email-subject-input').value;
     const messageTemplate = document.getElementById('email-message-input').value;
     const center = map ? map.getCenter() : { lat: 47.5750, lng: 8.2860 };
-    const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
+    const mapsUrl = `[https://www.google.com/maps?q=$](https://www.google.com/maps?q=$){center.lat},${center.lng}`;
     const recipientEmails = selectedUsers.map(u => u.email);
 
     try {
@@ -1723,10 +1723,10 @@ function loadInvitations() {
                 <div style="display:flex; flex-direction:column; gap:4px;">
                 <div style="font-size:0.9rem; display:flex; align-items:center; gap:6px;">
                 <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                <strong>Datum: ${inv.datetime || 'Kein Datum'}</strong>
+                <strong>Datum: ${escapeHtml(inv.datetime || 'Kein Datum')}</strong>
                 ${inv.updatedAt ? '<span class="badge-user" style="font-size:0.65rem; padding:1px 4px;">Aktualisiert</span>' : ''}
                 </div>
-                <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${inv.createdBy} | Klick für Details</div>
+                <div style="font-size:0.85rem; color:var(--text-muted);">Erstellt von: ${escapeHtml(inv.createdBy)} | Klick für Details</div>
                 </div>
                 </div>
                 `;
@@ -1757,7 +1757,7 @@ function updateChatRoomsList() {
     </div>
     <div class="room-meta">
     <div class="room-name">Hütten-Hauptchat</div>
-    <div class="room-sub">Öffentlicher Raum</div>
+    <div class="room-sub">Öffentlicher Raum für alle</div>
     </div>
     `;
     globalItem.onclick = () => window.switchChatRoom('global', 'Hütten-Hauptchat', 'Öffentlicher Raum für alle', '<svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>');
@@ -1778,7 +1778,7 @@ function updateChatRoomsList() {
             <svg class="icon" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
             </div>
             <div class="room-meta">
-            <div class="room-name"># ${tag.name}</div>
+            <div class="room-name"># ${escapeHtml(tag.name)}</div>
             <div class="room-sub">Gruppen-Kanal</div>
             </div>
             `;
@@ -1788,22 +1788,16 @@ function updateChatRoomsList() {
     });
 
     usersList.forEach(u => {
-        if (u.email !== auth.currentUser.email) {
-            const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
-            const dmItem = document.createElement('div');
-            dmItem.className = `chat-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
-            dmItem.dataset.roomId = dmId;
-            dmItem.innerHTML = `
-            <div class="room-avatar">${getAvatarMarkup(u)}</div>
-            <div class="room-meta">
-            <div class="room-name">${u.name || 'Unbenannt'}</div>
-            <div class="room-sub">${u.email}</div>
-            </div>
-            `;
-            dmItem.onclick = () => window.switchChatRoom(dmId, u.name || u.email, `Privater Chat`, getAvatarMarkup(u));
-            sidebarList.appendChild(dmItem);
-        }
-    });
+    if (u.email !== auth.currentUser.email) {
+        const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
+        const dmItem = document.createElement('div');
+        dmItem.className = `chat-room-item ${currentChatRoom === dmId ? 'active' : ''}`;
+        dmItem.dataset.roomId = dmId;
+        dmItem.innerHTML = renderUserProfileBadge(u, { maxTags: 2, showEmail: false });
+        dmItem.onclick = () => window.switchChatRoom(dmId, u.name || u.email, `Privater Chat`, getAvatarMarkup(u));
+        sidebarList.appendChild(dmItem);
+    }
+});
 }
 
 window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
@@ -1849,30 +1843,28 @@ window.switchChatRoom = (roomId, title, subtitle, avatarHTML) => {
             const isMe = auth.currentUser && auth.currentUser.email === msg.senderEmail;
             const sender = isMe
                 ? currentUserData
-                : usersList.find(user => user.email === msg.senderEmail) || { name: msg.senderName || msg.senderEmail };
+                : usersList.find(user => user.email === msg.senderEmail) || { name: msg.senderName || msg.senderEmail, email: msg.senderEmail };
+            
             const row = document.createElement('div');
             row.className = `message-row ${isMe ? 'mine' : ''}`;
             const msgDiv = document.createElement('div');
             msgDiv.className = `message-bubble ${isMe ? 'my-message' : 'other-message'}`;
             const timeStr = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
             const imageUrl = /^https:\/\//i.test(msg.imageUrl || '') ? msg.imageUrl : '';
-            // Innerhalb von window.switchChatRoom in onSnapshot:
-            const senderTags = sender.tags && sender.tags.length > 0 
-                ? `<div style="font-size: 0.7rem; color: var(--primary); margin-top: 2px;">${sender.tags.map(t => '#' + t).join(' ')}</div>` 
-                : '';
+            const senderTags = sender?.tags && sender.tags.length > 0 ? renderTagsHtml(sender.tags, 3) : '';
 
             msgDiv.innerHTML = `
             ${!isMe ? `
-                    <div class="msg-sender" style="display: flex; flex-direction: column; line-height: 1.2; margin-bottom: 4px;">
-                    <strong>${escapeHtml(sender.name || 'Unbenannt')}</strong>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(sender.email || msg.senderEmail)}</span>
+                <div class="msg-sender" style="display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px;">
+                    <strong>${escapeHtml(sender?.name || msg.senderName || 'Unbenannt')}</strong>
+                    <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">${escapeHtml(sender?.email || msg.senderEmail)}</span>
                     ${senderTags}
-        </div>
-    ` : ''}
-    ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
-    ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img class="chat-image" src="${escapeHtml(imageUrl)}" alt="Geteiltes Bild" loading="lazy"></a>` : ''}
-    <div class="msg-time">${timeStr}</div>
-`;
+                </div>
+            ` : ''}
+            ${msg.text ? `<div>${escapeHtml(msg.text)}</div>` : ''}
+            ${imageUrl ? `<a href="${escapeHtml(imageUrl)}" target="_blank" rel="noopener noreferrer"><img class="chat-image" src="${escapeHtml(imageUrl)}" alt="Geteiltes Bild" loading="lazy"></a>` : ''}
+            <div class="msg-time">${timeStr}</div>
+            `;
             const avatar = document.createElement('div');
             avatar.className = 'message-avatar';
             avatar.innerHTML = getAvatarMarkup(sender);
@@ -1898,11 +1890,11 @@ function setupTagSettingsPanel(tagName) {
     const content = document.getElementById('group-settings-content');
     const tagObj = tagsList.find(t => t.name === tagName);
 
-    let membersHtml = `<div style="font-size:0.85rem; margin-bottom:12px;"><strong>Mitglieder der Gruppe "${tagName}" verwalten:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:#f8fafc; margin-top:6px;">`;
+    let membersHtml = `<div style="font-size:0.85rem; margin-bottom:12px;"><strong>Mitglieder der Gruppe "${escapeHtml(tagName)}" verwalten:</strong><div style="max-height:120px; overflow-y:auto; border:1px solid var(--border); padding:6px; border-radius:6px; background:var(--background); margin-top:6px;">`;
     usersList.forEach(u => {
         const hasTag = u.tags && u.tags.includes(tagName);
         membersHtml += `<label style="display:block; margin-bottom:4px; font-weight:normal; font-size:0.85rem;">
-        <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${tagName}', this.checked)"> ${u.name || u.email} (${u.email})
+        <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${tagName}', this.checked)"> ${escapeHtml(u.name || u.email)} (${escapeHtml(u.email)})
         </label>`;
     });
     membersHtml += '</div></div>';
@@ -2012,17 +2004,18 @@ function renderAdminUsers() {
         tagsList.forEach(t => {
             const hasTag = u.tags && u.tags.includes(t.name);
             tagsCheckboxes += `<label class="admin-tag-option">
-            <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${t.name}', this.checked)"> ${t.name}
+            <input type="checkbox" ${hasTag ? 'checked' : ''} onchange="window.toggleUserTag('${u.id}', '${t.name}', this.checked)"> ${escapeHtml(t.name)}
             </label>`;
         });
         tagsCheckboxes += '</div></div>';
 
         const div = document.createElement('div');
         div.className = 'card';
-        div.style.padding = '10px';
+        div.style.padding = '12px';
         div.style.marginBottom = '8px';
         div.innerHTML = `
-        <div style="font-size:0.85rem;"><strong>${u.name || 'Unbenannt'}</strong> (${u.email})<br>Rolle: ${u.role}</div>
+        ${renderUserProfileBadge(u, { maxTags: 4, showEmail: true })}
+        <div style="font-size:0.8rem; margin-top:4px; color:var(--text-muted);">Rolle: ${escapeHtml(u.role)}</div>
         ${tagsCheckboxes}
         <div style="margin-top:6px; display:flex; gap:6px;">
         <button class="small-btn btn-secondary" onclick="window.toggleUserRole('${u.id}', '${u.role}')">Rolle ändern</button>
@@ -2054,13 +2047,7 @@ document.getElementById('new-chat-btn')?.addEventListener('click', () => {
             item.className = 'chat-room-item';
             item.style.borderRadius = 'var(--radius-sm)';
             item.style.border = '1px solid var(--border-strong)';
-            item.innerHTML = `
-            <div class="room-avatar">${getAvatarMarkup(u)}</div>
-            <div class="room-meta">
-            <div class="room-name">${u.name || 'Unbenannt'}</div>
-            <div class="room-sub">${u.email}</div>
-            </div>
-            `;
+            item.innerHTML = renderUserProfileBadge(u, { maxTags: 3, showEmail: true });
             item.onclick = () => {
                 const dmId = "dm_" + getDMId(auth.currentUser.email, u.email);
                 window.switchChatRoom(dmId, u.name || u.email, 'Privater Chat', getAvatarMarkup(u));
