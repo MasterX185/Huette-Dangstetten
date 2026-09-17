@@ -571,6 +571,75 @@ async function loadGitHubReadme(containerId = 'github-readme-container') {
     }
 }
 
+
+// 1. "Status öffnen"-Button auf der Login-Seite aktivieren
+document.getElementById('open-event-status-btn')?.addEventListener('click', async () => {
+    const accessKeyInput = document.getElementById('event-access-key-input');
+    const accessKey = accessKeyInput ? accessKeyInput.value.trim() : '';
+
+    if (!accessKey) {
+        alert('Bitte gib zuerst deinen Anfrage-Schlüssel ein.');
+        return;
+    }
+
+    try {
+        await openGuestEventRequest(accessKey);
+    } catch (error) {
+        alert('Fehler beim Öffnen der Anfrage: ' + error.message);
+    }
+});
+
+// 2. Gast-Nachricht senden
+document.getElementById('guest-request-message-btn')?.addEventListener('click', async () => {
+    const input = document.getElementById('guest-request-message-input');
+    const text = input ? input.value.trim() : '';
+
+    if (!text || !guestRequestSession?.accessKey) return;
+
+    try {
+        const result = await eventRequestApi({
+            action: 'guest-message',
+            accessKey: guestRequestSession.accessKey,
+            text: text
+        });
+        input.value = '';
+        renderGuestEventRequest(result);
+    } catch (error) {
+        alert('Fehler beim Senden der Nachricht: ' + error.message);
+    }
+});
+
+// Enter-Taste im Gast-Chat unterstützen
+document.getElementById('guest-request-message-input')?.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('guest-request-message-btn')?.click();
+    }
+});
+
+// 3. Zurück zur Anmeldung (Gastansicht verlassen)
+document.getElementById('guest-request-logout-btn')?.addEventListener('click', () => {
+    guestRequestSession = null;
+    sessionStorage.removeItem('event-request-access-key');
+    guestRequestSection.classList.add('hidden');
+    authSection.classList.remove('hidden');
+});
+
+// 4. Automatisch den Status beim Neuladen oder per E-Mail-Link (?accessKey=) öffnen
+window.addEventListener('DOMContentLoaded', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const keyFromUrl = urlParams.get('accessKey') || urlParams.get('key');
+    const savedKey = keyFromUrl || sessionStorage.getItem('event-request-access-key');
+
+    if (savedKey && !auth.currentUser) {
+        try {
+            await openGuestEventRequest(savedKey);
+        } catch (e) {
+            console.warn('Automatische Gast-Anmeldung fehlgeschlagen:', e);
+            sessionStorage.removeItem('event-request-access-key');
+        }
+    }
+});
+
 authToggleBtn?.addEventListener('click', () => {
     isRegistering = !isRegistering;
     authTitle.innerText = isRegistering ? 'Registrieren' : 'Anmelden';
