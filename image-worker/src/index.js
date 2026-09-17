@@ -142,20 +142,24 @@ async function sendEmail(user, title, body, env, extraParams = {}) {
         return false;
     }
 
-
+    const mapsUrl = extraParams.mapsUrl || extraParams.maps_url || "";
+    const statusUrl = extraParams.status_url || extraParams.statusUrl || "";
     const recipientName = user.name || user.email?.split('@')[0] || "Nutzer";
     const placeholderMap = {
     name: recipientName,
     to_name: recipientName,
     to_email: user.email,
     datetime: extraParams.datetime || "",
-    maps_url: extraParams.mapsUrl || extraParams.maps_url || "",
-    status_url: extraParams.status_url || extraParams.statusUrl || "https://huette-dangstetten.vercel.app/", // Hier deine Portal-URL eintragen
+    maps_url: mapsUrl,
+    status_url: statusUrl,
+    // Dynamische Sichtbarkeit steuern:
+    maps_display: mapsUrl ? "inline-block" : "none",
+    status_display: statusUrl ? "inline-block" : "none",
     sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
     from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
     reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
     ...extraParams
-    };
+};
 
     const personalizedSubject = replacePlaceholders(title, placeholderMap);
     const personalizedBody = replacePlaceholders(body, placeholderMap);
@@ -172,8 +176,10 @@ async function sendEmail(user, title, body, env, extraParams = {}) {
         subject: personalizedSubject,
         message: personalizedBody,
         datetime: extraParams.datetime || "",
-        maps_url: extraParams.mapsUrl || extraParams.maps_url || "",
-        status_url: extraParams.status_url || extraParams.statusUrl || "https://huette-dangstetten.vercel.app/",
+        maps_url: mapsUrl,
+        status_url: statusUrl,
+        maps_display: mapsUrl ? "inline-block" : "none",
+        status_display: statusUrl ? "inline-block" : "none",
         sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
         from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
         reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
