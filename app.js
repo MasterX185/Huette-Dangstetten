@@ -1660,7 +1660,7 @@ async function createNewInvitation() {
     const subjectTemplate = document.getElementById('email-subject-input').value;
     const messageTemplate = document.getElementById('email-message-input').value;
     const center = map ? map.getCenter() : { lat: 47.5750, lng: 8.2860 };
-    const mapsUrl = `[https://www.google.com/maps?q=$](https://www.google.com/maps?q=$){center.lat},${center.lng}`;
+    const mapsUrl = `https://www.google.com/maps?q=${center.lat},${center.lng}`;
 
     const recipientEmails = selectedUsers.map(u => u.email);
 
