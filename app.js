@@ -1744,7 +1744,18 @@ async function createNewInvitation() {
             createdAt: serverTimestamp()
         });
 
-        await dispatchNotifications('invitations', selectedUsers.map(user => user.id), subjectTemplate || 'Neue Einladung', messageTemplate || datetime, { invitationId: invitationRef.id, datetime, mapsUrl });
+        await dispatchNotifications(
+    'invitations', 
+    selectedUsers.map(user => user.id), 
+    subjectTemplate || 'Neue Einladung', 
+    messageTemplate || datetime, 
+    { 
+        invitationId: invitationRef.id, 
+        datetime, 
+        maps_url: mapsUrl, 
+        status_url: `https://huette-dangstetten.vercel.app/` // Deine Domain
+    }
+);
 
         alert('Einladungen erfolgreich versendet!');
     } catch (err) {

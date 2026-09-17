@@ -141,41 +141,45 @@ async function sendEmail(user, title, body, env, extraParams = {}) {
         });
         return false;
     }
+
+
     const recipientName = user.name || user.email?.split('@')[0] || "Nutzer";
     const placeholderMap = {
-        name: recipientName,
-        to_name: recipientName,
-        to_email: user.email,
-        datetime: extraParams.datetime || "",
-        mapsUrl: extraParams.mapsUrl || "",
-        sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-        from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-        reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
-        ...extraParams
+    name: recipientName,
+    to_name: recipientName,
+    to_email: user.email,
+    datetime: extraParams.datetime || "",
+    maps_url: extraParams.mapsUrl || extraParams.maps_url || "",
+    status_url: extraParams.status_url || extraParams.statusUrl || "https://huette-dangstetten.vercel.app/", // Hier deine Portal-URL eintragen
+    sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+    from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+    reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
+    ...extraParams
     };
 
     const personalizedSubject = replacePlaceholders(title, placeholderMap);
     const personalizedBody = replacePlaceholders(body, placeholderMap);
 
     const payload = {
-        service_id: env.EMAILJS_SERVICE_ID,
-        template_id: env.EMAILJS_TEMPLATE_ID,
-        user_id: env.EMAILJS_PUBLIC_KEY,
-        ...(env.EMAILJS_PRIVATE_KEY ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
-        template_params: {
-            to_email: user.email,
-            to_name: recipientName,
-            name: recipientName,
-            subject: personalizedSubject,
-            message: personalizedBody,
-            datetime: extraParams.datetime || "",
-            mapsUrl: extraParams.mapsUrl || "",
-            sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-            from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
-            reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
-            ...extraParams
-        }
-    };
+    service_id: env.EMAILJS_SERVICE_ID,
+    template_id: env.EMAILJS_TEMPLATE_ID,
+    user_id: env.EMAILJS_PUBLIC_KEY,
+    ...(env.EMAILJS_PRIVATE_KEY ? { accessToken: env.EMAILJS_PRIVATE_KEY } : {}),
+    template_params: {
+        to_email: user.email,
+        to_name: recipientName,
+        name: recipientName,
+        subject: personalizedSubject,
+        message: personalizedBody,
+        datetime: extraParams.datetime || "",
+        maps_url: extraParams.mapsUrl || extraParams.maps_url || "",
+        status_url: extraParams.status_url || extraParams.statusUrl || "https://huette-dangstetten.vercel.app/",
+        sender: extraParams.sender || env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+        from_name: env.NOTIFICATION_FROM_NAME || "HüttenPortal",
+        reply_to: env.NOTIFICATION_REPLY_TO || env.NOTIFICATION_FROM_EMAIL || user.email,
+        ...extraParams
+    }
+};
     const response = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
