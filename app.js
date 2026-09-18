@@ -1153,21 +1153,18 @@ document.getElementById('change-email-btn')?.addEventListener('click', async () 
     }
 
     try {
-        // Prüfen, ob die aktuelle E-Mail-Adresse verifiziert ist
-        if (!user.emailVerified) {
-            await sendEmailVerification(user);
-            msg.style.color = 'var(--accent)';
-            msg.innerText = 'Deine aktuelle E-Mail ist noch nicht verifiziert. Eine Bestätigungs-E-Mail wurde an deine bisherige Adresse gesendet.';
-            return;
-        }
-
-        // Firebase sendet eine Bestätigungs-E-Mail an die neue Adresse (nutzt Firebase Email Template)
         await verifyBeforeUpdateEmail(user, newEmail);
         msg.style.color = '#10b981';
-        msg.innerText = 'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Klicke auf den Link in der E-Mail, um die Änderung abzuschließen.';
+        msg.innerText = 'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Bitte klicke auf den Link in der E-Mail.';
     } catch (err) {
         msg.style.color = 'var(--danger)';
-        msg.innerText = 'Fehler: ' + err.message;
+        
+        // Neu-Anmeldung erforderlich abfangen
+        if (err.code === 'auth/requires-recent-login') {
+            msg.innerText = 'Aus Sicherheitsgründen musst du dich kurz ab- und wieder anmelden, um deine E-Mail-Adresse zu ändern.';
+        } else {
+            msg.innerText = 'Fehler: ' + err.message;
+        }
     }
 });
 
