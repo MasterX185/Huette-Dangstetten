@@ -3,7 +3,7 @@ import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
     signInWithPopup, signInWithRedirect, getRedirectResult,
-    sendPasswordResetEmail, sendEmailVerification
+    sendPasswordResetEmail, sendEmailVerification, verifyBeforeUpdateEmail
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
