@@ -3,7 +3,7 @@ import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
     signInWithPopup, signInWithRedirect, getRedirectResult,
-    sendPasswordResetEmail
+    sendPasswordResetEmail, sendEmailVerification
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
@@ -137,13 +137,87 @@ async function ensureUserDocument(user) {
         await setDoc(userRef, newUserData);
         return newUserData;
     }
+    
     const data = userDoc.data();
+
+    // Synchronisiert geänderte/bestätigte E-Mail-Adresse mit Firestore
+    if (user.email && data.email !== user.email) {
+        await updateDoc(userRef, { email: user.email });
+        data.email = user.email;
+    }
+
     if (!data.notificationPreferences) {
         await updateDoc(userRef, { notificationPreferences: { ...DEFAULT_NOTIFICATION_PREFERENCES } });
         data.notificationPreferences = { ...DEFAULT_NOTIFICATION_PREFERENCES };
     }
     return data;
 }
+
+// Hilfsfunktion zur Anzeige des Verifizierungs-Status
+async function updateVerificationStatusUI() {
+    const statusEl = document.getElementById('email-verified-status');
+    const user = auth.currentUser;
+    if (!statusEl || !user) return;
+
+    // Neuesten Status von Firebase abrufen
+    try {
+        await user.reload();
+    } catch (e) {
+        console.warn('User status reload fehlgeschlagen:', e);
+    }
+
+    if (user.emailVerified) {
+        statusEl.innerHTML = 'Status: <strong style="color: var(--success);">Verifiziert ✓</strong>';
+    } else {
+        statusEl.innerHTML = 'Status: <strong style="color: var(--danger);">Nicht verifiziert ✗</strong>';
+    }
+}
+
+// Event-Listener für den Neu-Senden-Button
+document.getElementById('resend-verification-btn')?.addEventListener('click', async () => {
+    const user = auth.currentUser;
+    const msg = document.getElementById('verification-msg');
+    const btn = document.getElementById('resend-verification-btn');
+
+    if (!user) return;
+
+    if (msg) msg.innerText = '';
+
+    // Aktuellen Status neu laden (falls Nutzer den Link bereits im Tab angeklickt hat)
+    await user.reload();
+
+    if (user.emailVerified) {
+        if (msg) {
+            msg.style.color = 'var(--success)';
+            msg.innerText = 'Deine E-Mail-Adresse ist bereits verifiziert!';
+        }
+        await updateVerificationStatusUI();
+        return;
+    }
+
+    try {
+        btn.disabled = true;
+        await sendEmailVerification(user);
+        if (msg) {
+            msg.style.color = 'var(--success)';
+            msg.innerText = 'Verifizierungs-E-Mail wurde gesendet. Bitte prüfe deinen Posteingang & Spam-Ordner.';
+        }
+    } catch (err) {
+        if (msg) {
+            msg.style.color = 'var(--danger)';
+            if (err.code === 'auth/too-many-requests') {
+                msg.innerText = 'Zu viele Anfragen kurz hintereinander. Bitte warte kurz und versuche es erneut.';
+            } else {
+                msg.innerText = 'Fehler: ' + err.message;
+            }
+        }
+    } finally {
+        // Sperrt den Button für 5 Sekunden, um versehentliches Mehrfachklicken zu verhindern
+        setTimeout(() => {
+            btn.disabled = false;
+        }, 5000);
+    }
+});
 
 getRedirectResult(auth).then(async (result) => {
     if (result && result.user) await ensureUserDocument(result.user);
@@ -665,6 +739,19 @@ authSubmitBtn?.addEventListener('click', async () => {
         return;
     }
 
+    if (isRegistering) {
+    if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
+    
+    // Verifizierungs-E-Mail direkt nach Registrierung senden
+    await sendEmailVerification(cred.user);
+    authMessage.style.color = 'var(--success)';
+    authMessage.innerText = 'Account erstellt! Bitte prüfe deinen Posteingang und bestätige deine E-Mail-Adresse.';
+} else {
+    await signInWithEmailAndPassword(auth, email, password);
+}
+
     try {
         if (isRegistering) {
             if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
@@ -986,6 +1073,7 @@ function updateUIForCurrentUser() {
 
     renderProfileTags();
     renderNotificationSettings();
+    updateVerificationStatusUI();
 }
 
 const notificationPreferenceFields = {
@@ -1054,12 +1142,29 @@ document.getElementById('notify-email-enabled')?.addEventListener('change', (eve
 document.getElementById('change-email-btn')?.addEventListener('click', async () => {
     const newEmail = document.getElementById('new-email-input').value.trim();
     const msg = document.getElementById('email-change-msg');
-    if (!newEmail) return;
+    const user = auth.currentUser;
+
+    if (!newEmail || !user) {
+        if (msg) {
+            msg.style.color = 'var(--danger)';
+            msg.innerText = 'Bitte gib eine neue E-Mail-Adresse ein.';
+        }
+        return;
+    }
+
     try {
-        await updateEmail(auth.currentUser, newEmail);
-        await updateDoc(doc(db, "users", auth.currentUser.uid), { email: newEmail });
+        // Prüfen, ob die aktuelle E-Mail-Adresse verifiziert ist
+        if (!user.emailVerified) {
+            await sendEmailVerification(user);
+            msg.style.color = 'var(--accent)';
+            msg.innerText = 'Deine aktuelle E-Mail ist noch nicht verifiziert. Eine Bestätigungs-E-Mail wurde an deine bisherige Adresse gesendet.';
+            return;
+        }
+
+        // Firebase sendet eine Bestätigungs-E-Mail an die neue Adresse (nutzt Firebase Email Template)
+        await verifyBeforeUpdateEmail(user, newEmail);
         msg.style.color = '#10b981';
-        msg.innerText = 'E-Mail erfolgreich geändert!';
+        msg.innerText = 'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Klicke auf den Link in der E-Mail, um die Änderung abzuschließen.';
     } catch (err) {
         msg.style.color = 'var(--danger)';
         msg.innerText = 'Fehler: ' + err.message;
