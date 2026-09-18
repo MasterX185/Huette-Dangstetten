@@ -765,18 +765,7 @@ authSubmitBtn?.addEventListener('click', async () => {
     }
 });
 
-    try {
-        if (isRegistering) {
-            if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
-            const cred = await createUserWithEmailAndPassword(auth, email, password);
-            await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
-        } else {
-            await signInWithEmailAndPassword(auth, email, password);
-        }
-    } catch (error) {
-        authMessage.innerText = 'Fehler: ' + error.message;
-    }
-});
+
 
 if (forgotPasswordBtn) {
     forgotPasswordBtn.addEventListener('click', async (e) => {
