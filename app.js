@@ -159,9 +159,8 @@ async function updateVerificationStatusUI() {
     const user = auth.currentUser;
     if (!statusEl || !user) return;
 
-    // Neuesten Status von Firebase abrufen
     try {
-        await user.reload();
+        await user.reload(); // Status direkt bei Firebase abfragen
     } catch (e) {
         console.warn('User status reload fehlgeschlagen:', e);
     }
@@ -215,7 +214,7 @@ document.getElementById('resend-verification-btn')?.addEventListener('click', as
         // Sperrt den Button für 5 Sekunden, um versehentliches Mehrfachklicken zu verhindern
         setTimeout(() => {
             btn.disabled = false;
-        }, 5000);
+        }, 30000);
     }
 });
 
@@ -739,18 +738,32 @@ authSubmitBtn?.addEventListener('click', async () => {
         return;
     }
 
-    if (isRegistering) {
-    if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
-    
-    // Verifizierungs-E-Mail direkt nach Registrierung senden
-    await sendEmailVerification(cred.user);
-    authMessage.style.color = 'var(--success)';
-    authMessage.innerText = 'Account erstellt! Bitte prüfe deinen Posteingang und bestätige deine E-Mail-Adresse.';
-} else {
-    await signInWithEmailAndPassword(auth, email, password);
-}
+    try {
+        if (isRegistering) {
+            if (!name) { 
+                authMessage.innerText = 'Bitte Namen eingeben.'; 
+                return; 
+            }
+            const cred = await createUserWithEmailAndPassword(auth, email, password);
+            await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
+            
+            await sendEmailVerification(cred.user);
+            authMessage.style.color = 'var(--success)';
+            authMessage.innerText = 'Account erstellt! Bitte prüfe deinen Posteingang und bestätige deine E-Mail-Adresse.';
+        } else {
+            await signInWithEmailAndPassword(auth, email, password);
+        }
+    } catch (error) {
+        authMessage.style.color = 'var(--danger)';
+        if (error.code === 'auth/too-many-requests') {
+            authMessage.innerText = 'Zu viele Anfragen in kurzer Zeit. Bitte warte einige Minuten.';
+        } else if (error.code === 'auth/email-already-in-use') {
+            authMessage.innerText = 'Diese E-Mail-Adresse wird bereits verwendet.';
+        } else {
+            authMessage.innerText = 'Fehler: ' + error.message;
+        }
+    }
+});
 
     try {
         if (isRegistering) {
