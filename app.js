@@ -3,7 +3,7 @@ import {
     getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
     signOut, onAuthStateChanged, updateEmail, GoogleAuthProvider,
     signInWithPopup, signInWithRedirect, getRedirectResult,
-    sendPasswordResetEmail, sendEmailVerification
+    sendPasswordResetEmail, sendEmailVerification, verifyBeforeUpdateEmail
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
     getFirestore, doc, setDoc, getDoc, collection, onSnapshot, addDoc,
@@ -159,9 +159,8 @@ async function updateVerificationStatusUI() {
     const user = auth.currentUser;
     if (!statusEl || !user) return;
 
-    // Neuesten Status von Firebase abrufen
     try {
-        await user.reload();
+        await user.reload(); // Status direkt bei Firebase abfragen
     } catch (e) {
         console.warn('User status reload fehlgeschlagen:', e);
     }
@@ -215,7 +214,7 @@ document.getElementById('resend-verification-btn')?.addEventListener('click', as
         // Sperrt den Button für 5 Sekunden, um versehentliches Mehrfachklicken zu verhindern
         setTimeout(() => {
             btn.disabled = false;
-        }, 5000);
+        }, 30000);
     }
 });
 
@@ -739,31 +738,34 @@ authSubmitBtn?.addEventListener('click', async () => {
         return;
     }
 
-    if (isRegistering) {
-    if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
-    
-    // Verifizierungs-E-Mail direkt nach Registrierung senden
-    await sendEmailVerification(cred.user);
-    authMessage.style.color = 'var(--success)';
-    authMessage.innerText = 'Account erstellt! Bitte prüfe deinen Posteingang und bestätige deine E-Mail-Adresse.';
-} else {
-    await signInWithEmailAndPassword(auth, email, password);
-}
-
     try {
         if (isRegistering) {
-            if (!name) { authMessage.innerText = 'Bitte Namen eingeben.'; return; }
+            if (!name) { 
+                authMessage.innerText = 'Bitte Namen eingeben.'; 
+                return; 
+            }
             const cred = await createUserWithEmailAndPassword(auth, email, password);
             await setDoc(doc(db, "users", cred.user.uid), { name, email, role: 'user', tags: [] });
+            
+            await sendEmailVerification(cred.user);
+            authMessage.style.color = 'var(--success)';
+            authMessage.innerText = 'Account erstellt! Bitte prüfe deinen Posteingang und bestätige deine E-Mail-Adresse.';
         } else {
             await signInWithEmailAndPassword(auth, email, password);
         }
     } catch (error) {
-        authMessage.innerText = 'Fehler: ' + error.message;
+        authMessage.style.color = 'var(--danger)';
+        if (error.code === 'auth/too-many-requests') {
+            authMessage.innerText = 'Zu viele Anfragen in kurzer Zeit. Bitte warte einige Minuten.';
+        } else if (error.code === 'auth/email-already-in-use') {
+            authMessage.innerText = 'Diese E-Mail-Adresse wird bereits verwendet.';
+        } else {
+            authMessage.innerText = 'Fehler: ' + error.message;
+        }
     }
 });
+
+
 
 if (forgotPasswordBtn) {
     forgotPasswordBtn.addEventListener('click', async (e) => {
@@ -1153,21 +1155,18 @@ document.getElementById('change-email-btn')?.addEventListener('click', async () 
     }
 
     try {
-        // Prüfen, ob die aktuelle E-Mail-Adresse verifiziert ist
-        if (!user.emailVerified) {
-            await sendEmailVerification(user);
-            msg.style.color = 'var(--accent)';
-            msg.innerText = 'Deine aktuelle E-Mail ist noch nicht verifiziert. Eine Bestätigungs-E-Mail wurde an deine bisherige Adresse gesendet.';
-            return;
-        }
-
-        // Firebase sendet eine Bestätigungs-E-Mail an die neue Adresse (nutzt Firebase Email Template)
         await verifyBeforeUpdateEmail(user, newEmail);
         msg.style.color = '#10b981';
-        msg.innerText = 'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Klicke auf den Link in der E-Mail, um die Änderung abzuschließen.';
+        msg.innerText = 'Eine Bestätigungs-E-Mail wurde an die neue Adresse gesendet. Bitte klicke auf den Link in der E-Mail.';
     } catch (err) {
         msg.style.color = 'var(--danger)';
-        msg.innerText = 'Fehler: ' + err.message;
+        
+        // Neu-Anmeldung erforderlich abfangen
+        if (err.code === 'auth/requires-recent-login') {
+            msg.innerText = 'Aus Sicherheitsgründen musst du dich kurz ab- und wieder anmelden, um deine E-Mail-Adresse zu ändern.';
+        } else {
+            msg.innerText = 'Fehler: ' + err.message;
+        }
     }
 });
 

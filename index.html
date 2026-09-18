@@ -828,28 +828,23 @@
                     </div>
                     <div id="chat-rooms-list" style="flex: 1; overflow-y: auto;"></div>
                 </div>
-
-                <!-- Chat Hauptfenster -->
-                <div id="chat-main" class="chat-main">
-                     <button id="mobile-back-btn" class="nav-btn" style="display: flex; flex-direction: row; font-size: 0.9rem; margin-bottom: 5px;">
-                        <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-                          Zurück zur Übersicht
-                        </button>
-                    <div class="chat-header-bar">
-                        <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
-                            <button id="mobile-back-btn" class="small-btn btn-secondary" style="display: none; padding: 6px 10px;">
-                                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-                            </button>
-                            <div id="active-chat-avatar" class="room-avatar" style="width: 36px; height: 36px; font-size: 0.85rem;"></div>
-                            <div style="overflow: hidden;">
-                                <div id="active-chat-title" style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Chat</div>
-                                <div id="active-chat-sub" style="font-size: 0.7rem; color: var(--text-muted);">...</div>
-                            </div>
-                        </div>
-                        <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden" style="padding: 6px 10px;" title="Chat-Einstellungen">
-                            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        </button>
-                    </div>
+<!-- Chat Hauptfenster -->
+<div id="chat-main" class="chat-main">
+    <div class="chat-header-bar">
+        <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+            <button id="mobile-back-btn" class="small-btn btn-secondary" style="padding: 6px 10px;" title="Zurück zur Übersicht">
+                <svg class="icon icon-sm" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div id="active-chat-avatar" class="room-avatar" style="width: 36px; height: 36px; font-size: 0.85rem;"></div>
+            <div style="overflow: hidden;">
+                <div id="active-chat-title" style="font-weight: 700; font-size: 0.95rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">Chat</div>
+                <div id="active-chat-sub" style="font-size: 0.7rem; color: var(--text-muted);">...</div>
+            </div>
+        </div>
+        <button id="toggle-chat-settings-btn" class="small-btn btn-secondary hidden" style="padding: 6px 10px;" title="Chat-Einstellungen">
+            <svg class="icon icon-sm" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+    </div>
 
                     <!-- Chat Settings Dropdown / Panel -->
                     <div id="chat-settings-panel" class="hidden" style="padding: 12px; background: var(--background); border-bottom: 1px solid var(--border-strong);">
@@ -1117,6 +1112,6 @@
 
 
     <!-- Haupt-Skript -->
-    <script type="module" src="app.js?v=20260913-event-requests-fix"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
