@@ -973,15 +973,27 @@
                 </div>
 
                 <div class="settings-section">
-                    <h4 class="settings-title">E-Mail-Adresse</h4>
-                    <p class="settings-hint">Ändere die Adresse, mit der du dich anmeldest.</p>
-                    <div class="settings-row">
-                        <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
-                        <button id="change-email-btn" class="small-btn" style="flex-shrink: 0;">Speichern</button>
-                    </div>
-                    <div id="email-change-msg" style="font-size: 0.8rem; margin-top: 6px; font-weight: 500;"></div>
-                </div>
+    <h4 class="settings-title">E-Mail-Adresse</h4>
+    <p class="settings-hint">Ändere die Adresse, mit der du dich anmeldest.</p>
+    <div class="settings-row">
+        <input type="email" id="new-email-input" placeholder="Neue E-Mail-Adresse">
+        <button id="change-email-btn" class="small-btn" style="flex-shrink: 0;">Speichern</button>
+    </div>
+    <div id="email-change-msg" style="font-size: 0.8rem; margin-top: 6px; font-weight: 500;"></div>
 
+    <!-- NEU: Verifizierungs-Status & Neu-Senden-Button -->
+    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <span id="email-verified-status" style="font-size: 0.8rem; color: var(--text-muted);">
+                Status: WIRD GELADEN...
+            </span>
+            <button id="resend-verification-btn" class="small-btn btn-secondary" type="button">
+                Verifizierungs-E-Mail neu senden
+            </button>
+        </div>
+        <div id="verification-msg" style="font-size: 0.8rem; margin-top: 6px; font-weight: 500;"></div>
+    </div>
+</div>
                 <button id="logout-btn" class="btn-secondary" style="width: 100%; margin-top: 20px; color: var(--danger); border-color: #fee2e2; background: #fef2f2;">Abmelden</button>
             </div>
 
